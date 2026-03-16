@@ -47,7 +47,7 @@ func init() {
 // It checks both directions: BirdNET name → updated name, and updated name → BirdNET name.
 // Returns the synonym and true if found, or empty string and false otherwise.
 func GetTaxonomySynonym(scientificName string) (string, bool) {
-	normalized := strings.ToLower(scientificName)
+	normalized := strings.ToLower(strings.TrimSpace(scientificName))
 
 	// Check forward: BirdNET name → updated name
 	if updated, found := forwardSynonyms[normalized]; found {
