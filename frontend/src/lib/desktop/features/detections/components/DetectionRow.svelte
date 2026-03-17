@@ -102,12 +102,16 @@
   function handleToggleSpecies() {
     confirmModalConfig = {
       title: isExcluded
-        ? `Show Species ${detection.commonName}`
-        : `Ignore Species ${detection.commonName}`,
+        ? t('dashboard.recentDetections.modals.showSpecies', { species: detection.commonName })
+        : t('dashboard.recentDetections.modals.ignoreSpecies', { species: detection.commonName }),
       message: isExcluded
-        ? `Are you sure you want to show future detections of ${detection.commonName}?`
-        : `Are you sure you want to ignore future detections of ${detection.commonName}? This will only affect new detections - existing detections will remain in the database.`,
-      confirmLabel: 'Confirm',
+        ? t('dashboard.recentDetections.modals.showSpeciesConfirm', {
+            species: detection.commonName,
+          })
+        : t('dashboard.recentDetections.modals.ignoreSpeciesConfirm', {
+            species: detection.commonName,
+          }),
+      confirmLabel: t('common.confirm'),
       onConfirm: async () => {
         try {
           await fetchWithCSRF('/api/v2/detections/ignore', {
@@ -130,11 +134,17 @@
 
   function handleToggleLock() {
     confirmModalConfig = {
-      title: detection.locked ? 'Unlock Detection' : 'Lock Detection',
+      title: detection.locked
+        ? t('dashboard.recentDetections.modals.unlockDetection')
+        : t('dashboard.recentDetections.modals.lockDetection'),
       message: detection.locked
-        ? `Are you sure you want to unlock this detection of ${detection.commonName}? This will allow it to be deleted during regular cleanup.`
-        : `Are you sure you want to lock this detection of ${detection.commonName}? This will prevent it from being deleted during regular cleanup.`,
-      confirmLabel: 'Confirm',
+        ? t('dashboard.recentDetections.modals.unlockDetectionConfirm', {
+            species: detection.commonName,
+          })
+        : t('dashboard.recentDetections.modals.lockDetectionConfirm', {
+            species: detection.commonName,
+          }),
+      confirmLabel: t('common.confirm'),
       onConfirm: async () => {
         try {
           await fetchWithCSRF(`/api/v2/detections/${detection.id}/lock`, {
@@ -157,9 +167,13 @@
 
   function handleDelete() {
     confirmModalConfig = {
-      title: `Delete Detection of ${detection.commonName}`,
-      message: `Are you sure you want to delete detection of ${detection.commonName}? This action cannot be undone.`,
-      confirmLabel: 'Delete',
+      title: t('dashboard.recentDetections.modals.deleteDetection', {
+        species: detection.commonName,
+      }),
+      message: t('dashboard.recentDetections.modals.deleteDetectionConfirm', {
+        species: detection.commonName,
+      }),
+      confirmLabel: t('common.delete'),
       onConfirm: async () => {
         try {
           await fetchWithCSRF(`/api/v2/detections/${detection.id}`, {

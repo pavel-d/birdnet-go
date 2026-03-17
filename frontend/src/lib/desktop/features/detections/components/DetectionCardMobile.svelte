@@ -45,7 +45,7 @@
   {#if spectrogramUrl && !spectrogramError}
     <img
       src={spectrogramUrl}
-      alt="Audio spectrogram"
+      alt={t('components.audio.spectrogramAlt')}
       class="absolute inset-0 w-full h-full object-cover opacity-20"
       onerror={() => (spectrogramError = true)}
     />
