@@ -1811,7 +1811,7 @@
       bind:this={spectrogramImage}
       id={`spectrogram-${detectionId}`}
       src={spectrogramUrl}
-      alt="Audio spectrogram"
+      alt={t('components.audio.spectrogramAlt')}
       decoding="async"
       class={responsive
         ? enableClipExtraction
