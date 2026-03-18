@@ -110,7 +110,9 @@
         id: el.id,
         type: el.type,
         enabled: el.enabled,
-        ...(SUPPORTS_HALF.has(el.type) && el.width === 'half' ? { width: 'half' as const } : {}),
+        // Always send explicit width for elements that support it to ensure the
+        // server receives the intended value rather than relying on omission defaults.
+        ...(SUPPORTS_HALF.has(el.type) ? { width: getEffectiveWidth(el) } : {}),
         ...(el.banner ? { banner: el.banner } : {}),
         ...(el.video ? { video: el.video } : {}),
         ...(el.summary ? { summary: el.summary } : {}),

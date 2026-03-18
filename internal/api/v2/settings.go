@@ -419,7 +419,7 @@ func handleFieldByType(
 	}
 
 	// For fields that are pointers to structs
-	if currentField.Kind() == reflect.Ptr && updatedField.Kind() == reflect.Ptr {
+	if currentField.Kind() == reflect.Pointer && updatedField.Kind() == reflect.Pointer {
 		return handlePointerField(currentField, updatedField, fieldPath, blockedSubfields, skippedFields)
 	}
 
@@ -604,8 +604,9 @@ func updateSettingsSectionWithTracking(settings *conf.Settings, section string, 
 	return handleGenericSection(sectionValue, data, section, skippedFields)
 }
 
-// mergeJSONIntoStruct merges JSON data into an existing struct without zeroing out missing fields
-// This is crucial for preserving nested object values when partial updates are sent
+// mergeJSONIntoStruct merges JSON data into an existing struct, preserving fields not
+// present in the update. It deep-merges the current struct state with the incoming JSON
+// at the map level, then writes the merged result back into the target struct.
 func mergeJSONIntoStruct(data json.RawMessage, target any) error {
 	// First unmarshal into a map
 	var updateMap map[string]any
@@ -633,7 +634,58 @@ func mergeJSONIntoStruct(data json.RawMessage, target any) error {
 		return err
 	}
 
+	// Nil out all slice fields before unmarshaling the merged result.
+	// json.Unmarshal reuses existing slice backing arrays, so fields omitted
+	// from JSON (e.g. width:"" via omitempty) retain their old values in
+	// slice elements. By nilling slices first, json.Unmarshal allocates fresh
+	// backing arrays and every element starts at its zero value.
+	//
+	// Only slices are affected — scalar, map, and struct fields are correctly
+	// overwritten by json.Unmarshal. We must NOT zero the entire struct because
+	// fields tagged json:"-" (runtime values like Labels, SoxAudioTypes) would
+	// be destroyed and are absent from mergedJSON.
+	zeroJSONSliceFields(reflect.ValueOf(target))
+
 	return json.Unmarshal(mergedJSON, target)
+}
+
+// zeroJSONSliceFields recursively nils all JSON-visible slice fields in a
+// struct so that json.Unmarshal allocates fresh backing arrays instead of
+// reusing stale ones. Fields tagged json:"-" are skipped because they hold
+// runtime values that are absent from the merged JSON and must be preserved.
+func zeroJSONSliceFields(v reflect.Value) {
+	if v.Kind() == reflect.Pointer {
+		if v.IsNil() {
+			return
+		}
+		v = v.Elem()
+	}
+	if v.Kind() != reflect.Struct {
+		return
+	}
+	for sf, field := range v.Fields() {
+		if !field.CanSet() {
+			continue
+		}
+		// Skip fields invisible to JSON — they hold runtime values not
+		// present in mergedJSON and would be permanently lost.
+		if tag, ok := sf.Tag.Lookup("json"); ok && tag == "-" {
+			continue
+		}
+		switch field.Kind() {
+		case reflect.Slice:
+			field.Set(reflect.Zero(field.Type()))
+		case reflect.Struct:
+			zeroJSONSliceFields(field)
+		case reflect.Pointer:
+			if !field.IsNil() && field.Elem().Kind() == reflect.Struct {
+				zeroJSONSliceFields(field)
+			}
+		default:
+			// Only slices need zeroing — scalars, maps, etc. are correctly
+			// overwritten by json.Unmarshal without stale value issues.
+		}
+	}
 }
 
 // deepMergeMaps recursively merges two maps, with values from src overwriting dst
