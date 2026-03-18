@@ -161,7 +161,10 @@
   />
 
   <!-- Login Modal placeholder -->
-  <dialog id="loginModal" class="modal modal-bottom sm:modal-middle">
+  <dialog
+    id="loginModal"
+    class="fixed inset-0 z-50 m-auto w-full max-w-sm rounded-lg bg-[var(--color-base-100)] shadow-xl backdrop:bg-black/50 sm:max-w-md"
+  >
     <!-- Login form will be loaded here dynamically -->
   </dialog>
 </div>
