@@ -3941,6 +3941,9 @@
       "speed": "Nopeus",
       "loop": "Toggle loop"
     },
+    "video": {
+      "playError": "Failed to play video"
+    },
     "spectrogram": {
       "notGenerated": "Spektrogrammia ei ole vielä generoitu",
       "generate": "Generoi spektrogrammi",

@@ -2849,6 +2849,7 @@ export type TranslationKey =
   | 'media.audio.playbackSpeed'
   | 'media.audio.speed'
   | 'media.audio.loop'
+  | 'media.video.playError'
   | 'media.spectrogram.notGenerated'
   | 'media.spectrogram.generate'
   | 'media.spectrogram.generateButton'

@@ -133,7 +133,21 @@ func (m *FFmpegManager) StartStream(url, transport string, audioChan chan Unifie
 	m.streams[url] = stream
 
 	if err := StartRTSPVideoRecorder(stream.source, transport); err != nil {
+		stream.Stop()
 		delete(m.streams, url)
+		UnregisterSoundLevelProcessor(stream.source.ID)
+		if err := RemoveAnalysisBuffer(stream.source.ID); err != nil {
+			getManagerLogger().Warn("failed to remove analysis buffer during video recorder rollback",
+				logger.String("source_id", stream.source.ID),
+				logger.Error(err),
+				logger.String("operation", "start_stream_video_recorder_rollback"))
+		}
+		if err := RemoveCaptureBuffer(stream.source.ID); err != nil {
+			getManagerLogger().Warn("failed to remove capture buffer during video recorder rollback",
+				logger.String("source_id", stream.source.ID),
+				logger.Error(err),
+				logger.String("operation", "start_stream_video_recorder_rollback"))
+		}
 		return errors.Newf("failed to start RTSP video recorder: %w", err).
 			Category(errors.CategorySystem).
 			Component("ffmpeg-manager").

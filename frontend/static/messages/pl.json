@@ -3941,6 +3941,9 @@
       "speed": "Prędkość",
       "loop": "Toggle loop"
     },
+    "video": {
+      "playError": "Failed to play video"
+    },
     "spectrogram": {
       "notGenerated": "Spektrogram jeszcze niegenerowany",
       "generate": "Generuj spektrogram",

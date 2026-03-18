@@ -245,24 +245,29 @@ func (a *DatabaseAction) ExecuteContext(ctx context.Context, _ any) error {
 				Duration:      captureLength,
 				CorrelationID: a.CorrelationID,
 			}
-			if err := saveVideoAction.Execute(ctx, nil); err != nil {
-				GetLogger().Error("Video export failed (continuing with detection broadcast)",
-					logger.String("component", "analysis.processor.actions"),
-					logger.String("detection_id", a.CorrelationID),
-					logger.Error(err),
-					logger.String("species", a.Result.Species.CommonName),
-					logger.String("operation", "video_export_non_fatal"))
-			} else {
-				a.Result.VideoClipName = videoClipName
-				if updateErr := a.updatePersistedVideoClipPath(videoClipName); updateErr != nil {
+			detectionID := strconv.FormatUint(uint64(a.Result.ID), 10)
+			repo := a.Repo
+			correlationID := a.CorrelationID
+			speciesName := a.Result.Species.CommonName
+			go func() {
+				if err := saveVideoAction.Execute(context.Background(), nil); err != nil {
+					GetLogger().Error("Video export failed",
+						logger.String("component", "analysis.processor.actions"),
+						logger.String("detection_id", correlationID),
+						logger.Error(err),
+						logger.String("species", speciesName),
+						logger.String("operation", "video_export_non_fatal"))
+					return
+				}
+				if err := repo.SetVideoClipName(context.Background(), detectionID, videoClipName); err != nil {
 					GetLogger().Error("Failed to persist video clip path",
 						logger.String("component", "analysis.processor.actions"),
-						logger.String("detection_id", a.CorrelationID),
-						logger.Error(updateErr),
+						logger.String("detection_id", correlationID),
+						logger.Error(err),
 						logger.String("video_clip_name", videoClipName),
 						logger.String("operation", "video_export_persist"))
 				}
-			}
+			}()
 		}
 	}
 

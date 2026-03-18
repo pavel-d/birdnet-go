@@ -170,8 +170,17 @@
       } else {
         if (hasVideo) {
           isLoading = true;
-          await mediaElement.play();
-          isLoading = false;
+          try {
+            await mediaElement.play();
+            isLoading = false;
+          } catch (videoErr) {
+            isLoading = false;
+            isPlaying = false;
+            if (!(videoErr instanceof DOMException && videoErr.name === 'AbortError')) {
+              logger.error('Error playing video:', videoErr);
+              error = t('media.video.playError');
+            }
+          }
           return;
         }
 

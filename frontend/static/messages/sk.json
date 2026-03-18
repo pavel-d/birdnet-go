@@ -3772,6 +3772,9 @@
       "speed": "Rýchlosť",
       "loop": "Toggle loop"
     },
+    "video": {
+      "playError": "Failed to play video"
+    },
     "spectrogram": {
       "notGenerated": "Spektrogram ešte nebol vygenerovaný",
       "generate": "Generovať spektrogram",
