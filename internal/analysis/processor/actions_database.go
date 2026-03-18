@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -233,6 +234,36 @@ func (a *DatabaseAction) ExecuteContext(ctx context.Context, _ any) error {
 					logger.String("operation", "save_audio_clip_debug"))
 			}
 		}
+
+		if a.Settings.Realtime.RTSP.VideoExport.Enabled && a.Result.AudioSource.Type == "rtsp" {
+			videoClipName := deriveVideoClipName(a.Result.ClipName)
+			saveVideoAction := &SaveVideoAction{
+				Settings:      a.Settings,
+				SourceID:      a.Result.AudioSource.ID,
+				VideoClipName: videoClipName,
+				BeginTime:     a.Result.BeginTime,
+				Duration:      captureLength,
+				CorrelationID: a.CorrelationID,
+			}
+			if err := saveVideoAction.Execute(ctx, nil); err != nil {
+				GetLogger().Error("Video export failed (continuing with detection broadcast)",
+					logger.String("component", "analysis.processor.actions"),
+					logger.String("detection_id", a.CorrelationID),
+					logger.Error(err),
+					logger.String("species", a.Result.Species.CommonName),
+					logger.String("operation", "video_export_non_fatal"))
+			} else {
+				a.Result.VideoClipName = videoClipName
+				if updateErr := a.updatePersistedVideoClipPath(videoClipName); updateErr != nil {
+					GetLogger().Error("Failed to persist video clip path",
+						logger.String("component", "analysis.processor.actions"),
+						logger.String("detection_id", a.CorrelationID),
+						logger.Error(updateErr),
+						logger.String("video_clip_name", videoClipName),
+						logger.String("operation", "video_export_persist"))
+				}
+			}
+		}
 	}
 
 	return nil
@@ -444,4 +475,29 @@ func (a *SaveAudioAction) Execute(_ context.Context, _ any) error {
 	}
 
 	return nil
+}
+
+func (a *SaveVideoAction) Execute(_ context.Context, _ any) error {
+	outputPath := filepath.Join(a.Settings.Realtime.RTSP.VideoExport.Path, a.VideoClipName)
+	if err := myaudio.ExportRTSPVideoClip(a.SourceID, a.BeginTime, a.Duration, outputPath); err != nil {
+		return err
+	}
+
+	GetLogger().Info("Video clip saved successfully",
+		logger.String("component", "analysis.processor.actions"),
+		logger.String("detection_id", a.CorrelationID),
+		logger.String("video_clip_path", a.VideoClipName),
+		logger.String("operation", "video_export_success"))
+
+	return nil
+}
+
+func deriveVideoClipName(audioClipName string) string {
+	ext := filepath.Ext(audioClipName)
+	base := strings.TrimSuffix(audioClipName, ext)
+	return base + ".mp4"
+}
+
+func (a *DatabaseAction) updatePersistedVideoClipPath(videoClipName string) error {
+	return a.Repo.SetVideoClipName(context.Background(), strconv.FormatUint(uint64(a.Result.ID), 10), videoClipName)
 }

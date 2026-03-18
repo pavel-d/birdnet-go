@@ -61,6 +61,9 @@ type DetectionRepository interface {
 	// GetClipPath returns the audio clip path for a detection.
 	GetClipPath(ctx context.Context, id string) (string, error)
 
+	// SetVideoClipName updates the saved video clip path for a detection.
+	SetVideoClipName(ctx context.Context, id string, videoClipName string) error
+
 	// GetAdditionalResults returns the secondary predictions for a detection.
 	GetAdditionalResults(ctx context.Context, id string) ([]detection.AdditionalResult, error)
 

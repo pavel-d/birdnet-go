@@ -60,6 +60,16 @@ type ExportSettings struct {
 	Normalization NormalizationSettings `json:"normalization" mapstructure:"normalization"` // audio normalization settings (EBU R128)
 }
 
+// VideoExportSettings contains RTSP video clip export configuration.
+// This is separate from audio export because it only applies to stream sources.
+type VideoExportSettings struct {
+	Enabled                bool   `json:"enabled" mapstructure:"enabled"`                               // true to enable RTSP detection video clip export
+	Path                   string `json:"path" mapstructure:"path"`                                     // path to video clip export directory
+	Format                 string `json:"format" mapstructure:"format"`                                 // video output format, currently mp4 only
+	SegmentDurationSeconds int    `json:"segmentDurationSeconds" mapstructure:"segmentDurationSeconds"` // rolling segment duration for ring buffer
+	BufferSeconds          int    `json:"bufferSeconds" mapstructure:"bufferSeconds"`                   // rolling buffer duration retained on disk
+}
+
 // NormalizationSettings contains audio normalization configuration based on EBU R128 standard
 type NormalizationSettings struct {
 	Enabled       bool    `json:"enabled" mapstructure:"enabled"`             // true to enable loudness normalization
@@ -529,11 +539,12 @@ type StreamConfig struct {
 // RTSPSettings contains settings for audio streaming (supports multiple protocols).
 // Note: Struct name kept for backward compatibility with existing code.
 type RTSPSettings struct {
-	Streams          []StreamConfig     `yaml:"streams" json:"streams" mapstructure:"streams"`                            // Stream configurations
-	URLs             []string           `yaml:"urls,omitempty" json:"urls,omitempty" mapstructure:"urls"`                 // Legacy: accepts old format, migrated on load
-	Transport        string             `yaml:"transport,omitempty" json:"transport,omitempty" mapstructure:"transport"`  // Legacy: global default, migrated on load
-	Health           RTSPHealthSettings `yaml:"health" json:"health" mapstructure:"health"`                               // Health monitoring settings
-	FFmpegParameters []string           `yaml:"ffmpegParameters" json:"ffmpegParameters" mapstructure:"ffmpegParameters"` // Custom FFmpeg parameters
+	Streams          []StreamConfig      `yaml:"streams" json:"streams" mapstructure:"streams"`                            // Stream configurations
+	URLs             []string            `yaml:"urls,omitempty" json:"urls,omitempty" mapstructure:"urls"`                 // Legacy: accepts old format, migrated on load
+	Transport        string              `yaml:"transport,omitempty" json:"transport,omitempty" mapstructure:"transport"`  // Legacy: global default, migrated on load
+	Health           RTSPHealthSettings  `yaml:"health" json:"health" mapstructure:"health"`                               // Health monitoring settings
+	FFmpegParameters []string            `yaml:"ffmpegParameters" json:"ffmpegParameters" mapstructure:"ffmpegParameters"` // Custom FFmpeg parameters
+	VideoExport      VideoExportSettings `yaml:"videoExport" json:"videoExport" mapstructure:"videoExport"`                // Optional RTSP detection video clip export
 }
 
 // CRITICAL: Legacy fields (URLs, Transport) MUST include json tags to accept

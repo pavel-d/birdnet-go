@@ -54,6 +54,25 @@ func (r *detectionRepository) Save(ctx context.Context, result *detection.Result
 	return nil
 }
 
+// SetVideoClipName updates the saved video clip path for a detection.
+func (r *detectionRepository) SetVideoClipName(ctx context.Context, id string, videoClipName string) error {
+	type noteUpdater interface {
+		UpdateNote(id string, updates map[string]any) error
+	}
+	if updater, ok := r.store.(noteUpdater); ok {
+		return updater.UpdateNote(id, map[string]any{"video_clip_name": videoClipName})
+	}
+
+	type videoClipSetter interface {
+		SetVideoClipName(context.Context, string, string) error
+	}
+	if setter, ok := r.store.(videoClipSetter); ok {
+		return setter.SetVideoClipName(ctx, id, videoClipName)
+	}
+
+	return fmt.Errorf("detection store does not support video clip updates")
+}
+
 // Get retrieves a detection by ID.
 func (r *detectionRepository) Get(ctx context.Context, id string) (*detection.Result, error) {
 	note, err := r.store.Get(id)
@@ -464,14 +483,14 @@ func (r *detectionRepository) convertFilters(filters *DetectionFilters) (Advance
 	}
 
 	legacy := AdvancedSearchFilters{
-		TextQuery:     filters.Query,
-		Species:       filters.Species,
-		TimeOfDay:     filters.TimeOfDay,
-		Location:      filters.Location,
-		Limit:         filters.Limit,
-		Offset:        filters.Offset,
-		SortAscending: filters.SortAscending,
-		Verified:      filters.Verified,
+		TextQuery:        filters.Query,
+		Species:          filters.Species,
+		TimeOfDay:        filters.TimeOfDay,
+		Location:         filters.Location,
+		Limit:            filters.Limit,
+		Offset:           filters.Offset,
+		SortAscending:    filters.SortAscending,
+		Verified:         filters.Verified,
 		Locked:           filters.Locked,
 		MinID:            filters.MinID,
 		CursorPagination: filters.CursorPagination,

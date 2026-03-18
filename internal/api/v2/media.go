@@ -163,6 +163,8 @@ func (c *Controller) initMediaRoutes() {
 
 	// ID-based routes using SFS
 	c.Echo.GET("/api/v2/audio/:id", c.ServeAudioByID)
+	c.Echo.GET("/api/v2/video/:id", c.ServeVideoByID)
+	c.Echo.GET("/api/v2/video/:id/poster", c.ServeVideoPosterByID)
 	c.Echo.GET("/api/v2/spectrogram/:id", c.ServeSpectrogramByID)
 	c.Echo.GET("/api/v2/spectrogram/:id/status", c.GetSpectrogramStatus)
 	c.Echo.POST("/api/v2/spectrogram/:id/generate", c.GenerateSpectrogramByID)
@@ -554,6 +556,92 @@ func (c *Controller) ServeAudioByID(ctx echo.Context) error {
 			}
 		}
 		return c.translateSecureFSError(ctx, err, "Failed to serve audio clip due to an unexpected error")
+	}
+
+	return nil
+}
+
+// ServeVideoByID serves a saved RTSP video clip based on detection ID.
+func (c *Controller) ServeVideoByID(ctx echo.Context) error {
+	videoPath, err := c.getVideoPathByID(ctx.Param("id"))
+	if err != nil {
+		if httpErr, ok := err.(*echo.HTTPError); ok {
+			return httpErr
+		}
+		return c.HandleError(ctx, err, "No video clip available for this note", http.StatusNotFound)
+	}
+	return c.serveVideoRelativeFile(ctx, videoPath, "video/mp4")
+}
+
+// ServeVideoPosterByID serves a generated first-frame poster image for a saved RTSP video clip.
+func (c *Controller) ServeVideoPosterByID(ctx echo.Context) error {
+	videoPath, err := c.getVideoPathByID(ctx.Param("id"))
+	if err != nil {
+		if httpErr, ok := err.(*echo.HTTPError); ok {
+			return httpErr
+		}
+		return c.HandleError(ctx, err, "No video clip available for this note", http.StatusNotFound)
+	}
+
+	settings := conf.Setting()
+	if settings == nil {
+		return c.HandleError(ctx, fmt.Errorf("settings not initialized"), "Failed to resolve video poster", http.StatusInternalServerError)
+	}
+
+	absVideoPath := filepath.Join(settings.Realtime.RTSP.VideoExport.Path, videoPath)
+	posterPath, err := myaudio.EnsureVideoPoster(absVideoPath)
+	if err != nil {
+		return c.HandleError(ctx, err, "Failed to generate video poster", http.StatusInternalServerError)
+	}
+
+	relativePosterPath, err := filepath.Rel(settings.Realtime.RTSP.VideoExport.Path, posterPath)
+	if err != nil {
+		return c.HandleError(ctx, err, "Failed to resolve video poster path", http.StatusInternalServerError)
+	}
+
+	return c.serveVideoRelativeFile(ctx, filepath.ToSlash(relativePosterPath), "image/jpeg")
+}
+
+func (c *Controller) getVideoPathByID(noteID string) (string, error) {
+	if noteID == "" {
+		return "", echo.NewHTTPError(http.StatusBadRequest, "Note ID is required")
+	}
+
+	note, err := c.DS.Get(noteID)
+	if err != nil {
+		return "", err
+	}
+	if note.VideoClipName == "" {
+		return "", echo.NewHTTPError(http.StatusNotFound, "No video clip available for this note")
+	}
+	return note.VideoClipName, nil
+}
+
+func (c *Controller) serveVideoRelativeFile(ctx echo.Context, relPath, contentType string) error {
+	settings := conf.Setting()
+	if settings == nil {
+		return c.HandleError(ctx, fmt.Errorf("settings not initialized"), "Failed to resolve video path", http.StatusInternalServerError)
+	}
+
+	videoFS, err := securefs.New(settings.Realtime.RTSP.VideoExport.Path)
+	if err != nil {
+		return c.HandleError(ctx, err, "Failed to initialize video filesystem", http.StatusInternalServerError)
+	}
+
+	normalizedPath, err := c.normalizeAndValidatePathWithLogger(relPath, c.apiLogger)
+	if err != nil {
+		return c.HandleError(ctx, err, "Invalid video path", http.StatusBadRequest)
+	}
+
+	filename := filepath.Base(relPath)
+	ctx.Response().Header().Set("Content-Type", contentType)
+	ctx.Response().Header().Set("Accept-Ranges", "bytes")
+	if isValidFilename(filename) {
+		ctx.Response().Header().Set("Content-Disposition", fmt.Sprintf("inline; filename*=UTF-8''%s", url.QueryEscape(filename)))
+	}
+
+	if err := videoFS.ServeRelativeFile(ctx, normalizedPath); err != nil {
+		return c.translateSecureFSError(ctx, err, "Failed to serve video clip")
 	}
 
 	return nil

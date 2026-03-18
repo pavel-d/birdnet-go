@@ -178,11 +178,20 @@ export interface RTSPHealthSettings {
   monitoringInterval: number; // health check interval in seconds (default: 30)
 }
 
+export interface VideoExportSettings {
+  enabled: boolean;
+  path: string;
+  format: 'mp4';
+  segmentDurationSeconds: number;
+  bufferSeconds: number;
+}
+
 // RTSPSettings matches backend RTSPSettings - now uses StreamConfig
 export interface RTSPSettings {
   streams: StreamConfig[]; // Stream configurations
   health?: RTSPHealthSettings; // health monitoring settings
   ffmpegParameters?: string[]; // optional custom FFmpeg parameters
+  videoExport?: VideoExportSettings;
 }
 
 export interface AudioQuality {
@@ -869,6 +878,20 @@ function createEmptySettings(): SettingsFormData {
         maxDuration: 120,
         captureBufferSeconds: 0,
         species: [],
+      },
+      rtsp: {
+        streams: [],
+        health: {
+          healthyDataThreshold: 60,
+          monitoringInterval: 30,
+        },
+        videoExport: {
+          enabled: false,
+          path: 'clips/video/',
+          format: 'mp4',
+          segmentDurationSeconds: 5,
+          bufferSeconds: 120,
+        },
       },
       birdweather: {
         enabled: false,

@@ -813,7 +813,13 @@
     },
     "media": {
       "title": "Recording & Spectrogram",
-      "clipHint": "Click and drag on the spectrogram to select a range for clip export"
+      "clipHint": "Click and drag on the spectrogram to select a range for clip export",
+      "videoTitle": "Video clip",
+      "spectrogramTitle": "Audio & spectrogram",
+      "videoPreviewAlt": "Video preview for {species}",
+      "spectrogramPreviewAlt": "Spectrogram preview for {species}",
+      "videoAria": "Video clip for {species}",
+      "videoUnsupported": "Your browser does not support embedded video playback."
     },
     "tabs": {
       "overview": "Overview",
@@ -2761,7 +2767,25 @@
       "rtspStreams": {
         "title": "Audio Stream Configuration",
         "description": "Configure network audio streams for remote audio capture. Supports RTSP, HTTP, HLS, RTMP, and UDP protocols.",
-        "noStreamsConfigured": "No streams configured"
+        "noStreamsConfigured": "No streams configured",
+        "videoExport": {
+          "title": "Detection video clips",
+          "description": "Optionally save RTSP video clips alongside audio detections.",
+          "enabledLabel": "Enable saved detection video clips",
+          "enabledHelp": "Keep a rolling RTSP video buffer and save a clip around each detection when available.",
+          "requiresAudioExport": "Saved video clips require audio clip recording to be enabled first.",
+          "pathLabel": "Video clip path",
+          "pathHelp": "Directory for saved RTSP detection clips and generated poster images.",
+          "formatLabel": "Video format",
+          "formatHelp": "MP4 is currently the only supported saved video format.",
+          "segmentDurationLabel": "Ring segment duration (seconds)",
+          "segmentDurationHelp": "Shorter segments reduce trim overhead but create more files in the rolling RTSP buffer.",
+          "bufferSecondsLabel": "Rolling buffer duration (seconds)",
+          "bufferSecondsHelp": "Keep enough buffered RTSP video to cover pre-roll, detection time, and post-roll.",
+          "restartRequired": "Changing RTSP video clip capture requires a restart.",
+          "rtspOnly": "This setting applies only to RTSP streams and uses the detection poster frame when a saved video clip is available.",
+          "disabled": "Saved detection video clips disabled"
+        }
       },
       "streams": {
         "streamLabel": "Stream",

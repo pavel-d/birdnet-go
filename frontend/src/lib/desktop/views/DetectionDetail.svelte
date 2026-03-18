@@ -18,6 +18,7 @@
   import ConfidenceCircle from '$lib/desktop/components/data/ConfidenceCircle.svelte';
   import WeatherDetails from '$lib/desktop/components/data/WeatherDetails.svelte';
   import AudioPlayer from '$lib/desktop/components/media/AudioPlayer.svelte';
+  import DetectionVideoPlayer from '$lib/desktop/components/media/DetectionVideoPlayer.svelte';
   import SpeciesBadges from '$lib/desktop/components/modals/SpeciesBadges.svelte';
   import ErrorAlert from '$lib/desktop/components/ui/ErrorAlert.svelte';
   import LoadingSpinner from '$lib/desktop/components/ui/LoadingSpinner.svelte';
@@ -762,18 +763,34 @@
           </p>
         {/if}
         <div role="region" aria-label="Audio recording and spectrogram for {detection.commonName}">
-          <div class="detail-audio-container">
-            <AudioPlayer
-              audioUrl={buildAppUrl(`/api/v2/audio/${detection.id}`)}
-              detectionId={detection.id.toString()}
-              showSpectrogram={true}
-              spectrogramSize="lg"
-              spectrogramRaw={false}
-              responsive={true}
-              className="w-full"
-              enableClipExtraction={clipExtractionEnabled}
-              clipLabel={`${detection.commonName}_${detection.date}_${detection.time.replace(/:/g, '-')}`}
-            />
+          <div class="detail-media-stack">
+            {#if detection.hasVideo}
+              <section class="detail-media-panel" aria-labelledby="video-panel-heading">
+                <h3 id="video-panel-heading" class="detail-media-heading">
+                  {t('detections.media.videoTitle')}
+                </h3>
+                <DetectionVideoPlayer {detection} />
+              </section>
+            {/if}
+
+            <section class="detail-media-panel" aria-labelledby="audio-panel-heading">
+              <h3 id="audio-panel-heading" class="detail-media-heading">
+                {t('detections.media.spectrogramTitle')}
+              </h3>
+              <div class="detail-audio-container">
+                <AudioPlayer
+                  audioUrl={buildAppUrl(`/api/v2/audio/${detection.id}`)}
+                  detectionId={detection.id.toString()}
+                  showSpectrogram={true}
+                  spectrogramSize="lg"
+                  spectrogramRaw={false}
+                  responsive={true}
+                  className="w-full"
+                  enableClipExtraction={clipExtractionEnabled}
+                  clipLabel={`${detection.commonName}_${detection.date}_${detection.time.replace(/:/g, '-')}`}
+                />
+              </div>
+            </section>
           </div>
         </div>
       </div>
@@ -1123,6 +1140,26 @@
     padding: 1rem;
   }
 
+  .detail-media-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .detail-media-panel {
+    min-width: 0;
+  }
+
+  .detail-media-heading {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-base-content);
+    opacity: 0.58;
+    margin-bottom: 0.75rem;
+  }
+
   /* ----- Metadata list (key-value pairs) ----- */
   .metadata-list {
     display: flex;
@@ -1325,12 +1362,14 @@
   /* ----- Audio Container ----- */
   .detail-audio-container {
     width: 100%;
-    max-width: 1200px;
-    margin: 0 auto;
+    min-width: 0;
   }
 
   .detail-audio-container :global(.group) {
     position: relative;
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
   }
 
   .detail-audio-container :global(img) {

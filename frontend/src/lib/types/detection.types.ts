@@ -21,6 +21,9 @@ export interface Detection {
   locked: boolean;
   comments?: Comment[];
   clipName?: string;
+  videoClipName?: string;
+  hasVideo?: boolean;
+  videoPreviewImageUrl?: string;
   weather?: Weather;
   timeOfDay?: string;
   // Species tracking metadata

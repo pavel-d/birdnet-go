@@ -100,6 +100,13 @@ func setDefaultConfig() {
 	viper.SetDefault("realtime.audio.export.preCapture", 3)
 	viper.SetDefault("realtime.audio.export.gain", 0.0)
 
+	// RTSP video export configuration
+	viper.SetDefault("realtime.rtsp.videoexport.enabled", false)
+	viper.SetDefault("realtime.rtsp.videoexport.path", "clips/video/")
+	viper.SetDefault("realtime.rtsp.videoexport.format", "mp4")
+	viper.SetDefault("realtime.rtsp.videoexport.segmentdurationseconds", DefaultVideoExportSegmentDurationSeconds)
+	viper.SetDefault("realtime.rtsp.videoexport.bufferseconds", DefaultVideoExportBufferSeconds)
+
 	// Audio normalization configuration (EBU R128 standard)
 	viper.SetDefault("realtime.audio.export.normalization.enabled", false)     // disabled by default
 	viper.SetDefault("realtime.audio.export.normalization.targetLUFS", -23.0)  // EBU R128 broadcast standard

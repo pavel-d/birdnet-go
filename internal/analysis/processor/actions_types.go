@@ -95,6 +95,15 @@ type SaveAudioAction struct {
 	CorrelationID string // Detection correlation ID for log tracking
 }
 
+type SaveVideoAction struct {
+	Settings      *conf.Settings
+	SourceID      string
+	VideoClipName string
+	BeginTime     time.Time
+	Duration      int
+	CorrelationID string
+}
+
 // PreRenderJob represents a spectrogram pre-rendering task.
 // This is a local DTO to avoid direct coupling to spectrogram package types.
 type PreRenderJob struct {
@@ -227,6 +236,11 @@ func (a *SaveAudioAction) GetDescription() string {
 		return a.Description
 	}
 	return "Save audio clip to file"
+}
+
+// GetDescription returns a human-readable description of the SaveVideoAction.
+func (a *SaveVideoAction) GetDescription() string {
+	return "Save video clip to file"
 }
 
 // GetDescription returns a human-readable description of the BirdWeatherAction

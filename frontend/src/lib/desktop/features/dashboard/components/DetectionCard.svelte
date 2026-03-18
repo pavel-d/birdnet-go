@@ -15,7 +15,7 @@
   - onDelete?: () => void - Callback for delete action
 -->
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount } from 'svelte';
   import type { Detection } from '$lib/types/detection.types';
   import ConfidenceBadge from './ConfidenceBadge.svelte';
   import WeatherBadge from './WeatherBadge.svelte';
@@ -24,8 +24,8 @@
   import SpeciesInfoBar from './SpeciesInfoBar.svelte';
   import CardActionMenu from './CardActionMenu.svelte';
   import AudioSettingsButton from './AudioSettingsButton.svelte';
+  import DetectionPreviewMedia from '$lib/desktop/components/media/DetectionPreviewMedia.svelte';
   import { cn } from '$lib/utils/cn';
-  import { createSpectrogramLoader } from '$lib/utils/spectrogramLoader.svelte';
   import { DEFAULT_PLAYBACK_SPEED } from '$lib/utils/audio';
 
   // Configuration constants
@@ -57,8 +57,6 @@
     onToggleLock,
     onDelete,
   }: Props = $props();
-
-  const loader = createSpectrogramLoader({ size: 'md', raw: true });
 
   let cardElement = $state<HTMLElement | undefined>(undefined);
   let isVisible = $state(false);
@@ -99,15 +97,6 @@
     onFreezeEnd?.();
   }
 
-  // Start/stop loader based on visibility
-  $effect(() => {
-    if (isVisible) {
-      loader.start(detection.id);
-    } else {
-      loader.stop();
-    }
-  });
-
   // Handle detection ID changes (component reuse in keyed each)
   let previousDetectionId: number | undefined;
   $effect(() => {
@@ -117,10 +106,6 @@
       audioFilterFreq = DEFAULT_AUDIO_FILTER_FREQ;
       audioPlaybackSpeed = DEFAULT_PLAYBACK_SPEED;
       audioContextAvailable = true;
-
-      if (isVisible) {
-        loader.start(currentId);
-      }
     }
     previousDetectionId = currentId;
   });
@@ -171,11 +156,10 @@
       { rootMargin: '200px 0px' }
     );
     observer.observe(cardElement);
-  });
 
-  onDestroy(() => {
-    observer?.disconnect();
-    loader.destroy();
+    return () => {
+      observer?.disconnect();
+    };
   });
 </script>
 
@@ -191,33 +175,13 @@
   <div class="detection-card-inner">
     <!-- Spectrogram Background -->
     <div class="spectrogram-container">
-      {#if loader.showSpinner}
-        <div class="spectrogram-loading">
-          <span class="loading loading-spinner loading-md text-[var(--color-base-content)]/50"
-          ></span>
-          {#if loader.isQueued}
-            <span class="text-xs text-[var(--color-base-content)]/40 mt-1">Waiting...</span>
-          {:else if loader.isGenerating}
-            <span class="text-xs text-[var(--color-base-content)]/40 mt-1">Generating...</span>
-          {/if}
-        </div>
-      {/if}
-
-      {#if loader.error}
-        <div class="spectrogram-error">
-          <span class="text-sm text-[var(--color-base-content)]/50">Spectrogram unavailable</span>
-        </div>
-      {:else if loader.spectrogramUrl}
-        <img
-          src={loader.spectrogramUrl}
-          alt="Spectrogram for {detection.commonName}"
-          class="spectrogram-image"
-          class:opacity-0={loader.state === 'loading'}
-          decoding="async"
-          onload={() => loader.handleImageLoad()}
-          onerror={() => loader.handleImageError()}
-        />
-      {/if}
+      <DetectionPreviewMedia
+        {detection}
+        active={isVisible}
+        className="h-full w-full"
+        imageClassName="spectrogram-image"
+        fallbackClassName="spectrogram-loading"
+      />
     </div>
 
     <!-- Top-Left Badges: Confidence + Weather -->
@@ -240,6 +204,7 @@
     <!-- Center Play Button -->
     <PlayOverlay
       detectionId={detection.id}
+      hasVideo={Boolean(detection.hasVideo)}
       {onFreezeStart}
       {onFreezeEnd}
       gainValue={audioGainValue}

@@ -31,6 +31,7 @@ type Note struct {
 	Threshold      float64
 	Sensitivity    float64
 	ClipName       string
+	VideoClipName  string
 	ProcessingTime time.Duration
 	Occurrence     float64       `gorm:"-" json:"occurrence,omitempty"` // Runtime only, occurrence probability (0-1) based on location/time
 	Results        []Results     `gorm:"foreignKey:NoteID;constraint:OnDelete:CASCADE"`
@@ -153,9 +154,11 @@ type DetectionRecord struct {
 	Longitude      float64   `json:"longitude,omitempty"`
 	Week           int       `json:"week,omitempty"`
 	AudioFilePath  string    `json:"audioFilePath,omitempty"`
+	VideoFilePath  string    `json:"videoFilePath,omitempty"`
 	Verified       string    `json:"verified,omitempty"`
 	Locked         bool      `json:"locked,omitempty"`
 	HasAudio       bool      `json:"hasAudio,omitempty"`
+	HasVideo       bool      `json:"hasVideo,omitempty"`
 	Device         string    `json:"device,omitempty"`
 	Source         string    `json:"source,omitempty"`
 	TimeOfDay      string    `json:"timeOfDay,omitempty"`

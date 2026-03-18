@@ -44,6 +44,7 @@
 
   interface Props {
     detectionId: number;
+    hasVideo?: boolean;
     onFreezeStart?: () => void;
     onFreezeEnd?: () => void;
     gainValue?: number;
@@ -54,6 +55,7 @@
 
   let {
     detectionId,
+    hasVideo = false,
     onFreezeStart,
     onFreezeEnd,
     gainValue = 0,
@@ -63,6 +65,7 @@
   }: Props = $props();
 
   let audioElement: HTMLAudioElement;
+  let videoElement: HTMLVideoElement | undefined;
   let overlayElement: HTMLDivElement;
   let isPlaying = $state(false);
   let isLoading = $state(false);
@@ -89,6 +92,14 @@
   // PLAY_END_DELAY_MS imported from $lib/utils/audio
 
   const audioUrl = $derived(`/api/v2/audio/${encodeURIComponent(detectionId)}`);
+  const videoUrl = $derived(`/api/v2/video/${encodeURIComponent(detectionId)}`);
+
+  function getMediaElement(): HTMLMediaElement | null {
+    if (hasVideo && videoElement) {
+      return videoElement;
+    }
+    return audioElement ?? null;
+  }
 
   // Update audio nodes when gain/filter props change
   // Read values unconditionally to ensure they're tracked as dependencies
@@ -142,7 +153,8 @@
   async function handlePlayPause(event: MouseEvent) {
     event.stopPropagation();
 
-    if (!audioElement) return;
+    const mediaElement = getMediaElement();
+    if (!mediaElement) return;
 
     // Clear any previous error and reset retry count for fresh user interaction
     error = null;
@@ -154,8 +166,15 @@
 
     try {
       if (isPlaying) {
-        audioElement.pause();
+        mediaElement.pause();
       } else {
+        if (hasVideo) {
+          isLoading = true;
+          await mediaElement.play();
+          isLoading = false;
+          return;
+        }
+
         // Initialize audio context on first play (for gain/filter controls)
         // Guard against rapid clicks that could create multiple AudioContexts
         if (!audioContext && !isInitializingContext) {
@@ -204,7 +223,7 @@
     clearPlayEndTimeout();
 
     // Apply playback rate when starting
-    if (audioElement) {
+    if (audioElement && !hasVideo) {
       applyPlaybackRate(audioElement, playbackSpeed);
     }
 
@@ -233,8 +252,9 @@
 
   // Smooth progress update using interval (like old AudioPlayer)
   function updateProgress() {
-    if (!audioElement) return;
-    currentTime = audioElement.currentTime;
+    const mediaElement = getMediaElement();
+    if (!mediaElement) return;
+    currentTime = mediaElement.currentTime;
     if (duration > 0) {
       progress = (currentTime / duration) * 100;
     }
@@ -258,21 +278,23 @@
   }
 
   function handleLoadedMetadata() {
-    if (audioElement) {
-      duration = audioElement.duration;
+    const mediaElement = getMediaElement();
+    if (mediaElement) {
+      duration = mediaElement.duration;
     }
   }
 
   // Seek to position when clicking on the overlay area
   function handleSeek(event: MouseEvent) {
-    if (!audioElement || !overlayElement || duration === 0) return;
+    const mediaElement = getMediaElement();
+    if (!mediaElement || !overlayElement || duration === 0) return;
 
     const rect = overlayElement.getBoundingClientRect();
     const clickX = event.clientX - rect.left;
     const clickPercent = clickX / rect.width;
     const newTime = clickPercent * duration;
 
-    audioElement.currentTime = Math.max(0, Math.min(newTime, duration));
+    mediaElement.currentTime = Math.max(0, Math.min(newTime, duration));
     progress = Math.max(0, Math.min(clickPercent * 100, 100));
   }
 
@@ -395,6 +417,25 @@
   }
 
   onMount(() => {
+    if (hasVideo) {
+      return () => {
+        clearPlayEndTimeout();
+        stopProgressInterval();
+
+        if (canplayTimeoutId) {
+          clearTimeout(canplayTimeoutId);
+          canplayTimeoutId = undefined;
+        }
+
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+
+        if (videoElement) {
+          videoElement.pause();
+        }
+      };
+    }
+
     // Create audio element dynamically to avoid iOS Safari issues
     // where DOM-bound audio elements don't fire canplay events
     audioElement = new Audio();
@@ -457,6 +498,24 @@
 </script>
 
 <!-- Audio element is created dynamically in onMount for iOS Safari compatibility -->
+{#if hasVideo}
+  <video
+    bind:this={videoElement}
+    class="card-video"
+    class:is-visible={hasEverPlayed || isPlaying}
+    preload="metadata"
+    playsinline
+    src={videoUrl}
+    onplay={handlePlay}
+    onpause={handlePause}
+    onended={handleEnded}
+    ontimeupdate={handleTimeUpdate}
+    onloadedmetadata={handleLoadedMetadata}
+    onloadstart={handleLoadStart}
+    oncanplay={handleCanPlay}
+    onerror={handleError}
+  ></video>
+{/if}
 
 <!-- Seek area - covers the full card for click-to-seek -->
 <div
@@ -577,6 +636,23 @@
     inset: 0;
     z-index: 5;
     cursor: pointer;
+  }
+
+  .card-video {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+  }
+
+  .card-video.is-visible {
+    opacity: 1;
   }
 
   /* Playhead position indicator - white like old player */

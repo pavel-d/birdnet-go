@@ -245,6 +245,12 @@ realtime:
     health:
       healthyDataThreshold: 60  # Seconds of data to consider stream healthy
       monitoringInterval: 30    # Seconds between health checks
+    videoexport:
+      enabled: false            # true to save RTSP video clips for detections (requires audio export)
+      path: clips/video/        # path to exported detection video clips
+      format: mp4               # output format for saved detection video clips
+      segmentdurationseconds: 5 # rolling RTSP segment duration for the video ring buffer
+      bufferseconds: 120        # total rolling video history retained per RTSP stream
   
   log:
     enabled: false        # true to enable OBS chat log

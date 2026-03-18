@@ -776,6 +776,65 @@ export function coerceSettings(section: string, data: UnknownSettings): UnknownS
         );
       }
 
+      const rtspDefaults = {
+        streams: [],
+        health: {
+          healthyDataThreshold: 60,
+          monitoringInterval: 30,
+        },
+        videoExport: {
+          enabled: false,
+          path: 'clips/video/',
+          format: 'mp4',
+          segmentDurationSeconds: 5,
+          bufferSeconds: 120,
+        },
+      };
+      const rawRTSP = data.rtsp;
+      const incomingRTSP: Record<string, unknown> =
+        rawRTSP != null && typeof rawRTSP === 'object' && !Array.isArray(rawRTSP)
+          ? (rawRTSP as Record<string, unknown>)
+          : {};
+      const rawVideoExport = incomingRTSP.videoExport;
+      const incomingVideoExport: Record<string, unknown> =
+        rawVideoExport != null &&
+        typeof rawVideoExport === 'object' &&
+        !Array.isArray(rawVideoExport)
+          ? (rawVideoExport as Record<string, unknown>)
+          : {};
+      coercedRealtime.rtsp = {
+        ...rtspDefaults,
+        ...incomingRTSP,
+        streams: Array.isArray(incomingRTSP.streams) ? incomingRTSP.streams : [],
+        health: {
+          ...rtspDefaults.health,
+          ...(incomingRTSP.health &&
+          typeof incomingRTSP.health === 'object' &&
+          !Array.isArray(incomingRTSP.health)
+            ? (incomingRTSP.health as Record<string, unknown>)
+            : {}),
+        },
+        videoExport: {
+          ...rtspDefaults.videoExport,
+          ...incomingVideoExport,
+          enabled: coerceBoolean(incomingVideoExport.enabled, rtspDefaults.videoExport.enabled),
+          path: coerceString(incomingVideoExport.path, rtspDefaults.videoExport.path),
+          format: coerceString(incomingVideoExport.format, rtspDefaults.videoExport.format),
+          segmentDurationSeconds: coerceNumber(
+            incomingVideoExport.segmentDurationSeconds,
+            1,
+            30,
+            rtspDefaults.videoExport.segmentDurationSeconds
+          ),
+          bufferSeconds: coerceNumber(
+            incomingVideoExport.bufferSeconds,
+            1,
+            3600,
+            rtspDefaults.videoExport.bufferSeconds
+          ),
+        },
+      };
+
       // Backfill extendedCapture defaults for legacy configs
       const extendedCaptureDefaults = {
         enabled: false,

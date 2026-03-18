@@ -131,6 +131,7 @@ export type TranslationKey =
   | 'common.aria.downloadCsv'
   | 'common.aria.visitEbirdLink'
   | 'common.aria.learnEbirdTaxonomyLink'
+  | 'common.aria.resizeHandle'
   | 'common.labels.confidence'
   | 'common.labels.github'
   | 'common.values.yes'
@@ -572,6 +573,9 @@ export type TranslationKey =
   | 'dashboard.editMode.widthHalf'
   | 'dashboard.editMode.fullWidthOnly'
   | 'dashboard.editMode.settings'
+  | 'dashboard.editMode.resetDashboard'
+  | 'dashboard.editMode.resetConfirm'
+  | 'dashboard.editMode.resetting'
   | 'dashboard.elements.banner'
   | 'dashboard.elements.dailySummary'
   | 'dashboard.elements.currentlyHearing'
@@ -639,6 +643,12 @@ export type TranslationKey =
   | 'detections.row.viewDetails' // params: species
   | 'detections.media.title'
   | 'detections.media.clipHint'
+  | 'detections.media.videoTitle'
+  | 'detections.media.spectrogramTitle'
+  | 'detections.media.videoPreviewAlt' // params: species
+  | 'detections.media.spectrogramPreviewAlt' // params: species
+  | 'detections.media.videoAria' // params: species
+  | 'detections.media.videoUnsupported'
   | 'detections.tabs.overview'
   | 'detections.tabs.taxonomy'
   | 'detections.tabs.history'
@@ -1843,6 +1853,8 @@ export type TranslationKey =
   | 'settings.integration.weather.temperatureUnit.options.fahrenheit'
   | 'settings.integration.errors.connectionError'
   | 'settings.integration.errors.responseStreamFailed'
+  | 'settings.integration.errors.configurationCheck'
+  | 'settings.integration.errors.testStageFallback'
   | 'settings.integration.ebird.title'
   | 'settings.integration.ebird.description'
   | 'settings.integration.ebird.enable'
@@ -1853,6 +1865,13 @@ export type TranslationKey =
   | 'settings.integration.ebird.cacheTTL.label'
   | 'settings.integration.ebird.cacheTTL.helpText'
   | 'settings.integration.ebird.note'
+  | 'settings.integration.ebird.apiKeyInfo'
+  | 'settings.integration.ebird.test.button'
+  | 'settings.integration.ebird.test.loading'
+  | 'settings.integration.ebird.test.enabledRequired'
+  | 'settings.integration.ebird.test.apiKeyRequired'
+  | 'settings.integration.ebird.test.inProgress'
+  | 'settings.integration.ebird.test.description'
   | 'settings.audio.loading'
   | 'settings.audio.tabs.soundCard'
   | 'settings.audio.tabs.streams'
@@ -1925,6 +1944,22 @@ export type TranslationKey =
   | 'settings.audio.rtspStreams.title'
   | 'settings.audio.rtspStreams.description'
   | 'settings.audio.rtspStreams.noStreamsConfigured'
+  | 'settings.audio.rtspStreams.videoExport.title'
+  | 'settings.audio.rtspStreams.videoExport.description'
+  | 'settings.audio.rtspStreams.videoExport.enabledLabel'
+  | 'settings.audio.rtspStreams.videoExport.enabledHelp'
+  | 'settings.audio.rtspStreams.videoExport.requiresAudioExport'
+  | 'settings.audio.rtspStreams.videoExport.pathLabel'
+  | 'settings.audio.rtspStreams.videoExport.pathHelp'
+  | 'settings.audio.rtspStreams.videoExport.formatLabel'
+  | 'settings.audio.rtspStreams.videoExport.formatHelp'
+  | 'settings.audio.rtspStreams.videoExport.segmentDurationLabel'
+  | 'settings.audio.rtspStreams.videoExport.segmentDurationHelp'
+  | 'settings.audio.rtspStreams.videoExport.bufferSecondsLabel'
+  | 'settings.audio.rtspStreams.videoExport.bufferSecondsHelp'
+  | 'settings.audio.rtspStreams.videoExport.restartRequired'
+  | 'settings.audio.rtspStreams.videoExport.rtspOnly'
+  | 'settings.audio.rtspStreams.videoExport.disabled'
   | 'settings.audio.streams.streamLabel'
   | 'settings.audio.streams.nameLabel'
   | 'settings.audio.streams.namePlaceholder'
@@ -2813,6 +2848,7 @@ export type TranslationKey =
   | 'media.audio.seekProgress' // params: current, total
   | 'media.audio.playbackSpeed'
   | 'media.audio.speed'
+  | 'media.audio.loop'
   | 'media.spectrogram.notGenerated'
   | 'media.spectrogram.generate'
   | 'media.spectrogram.generateButton'
@@ -2872,6 +2908,20 @@ export type TranslationKey =
   | 'components.audioPlayer.clipExtraction.extractError'
   | 'components.audioPlayer.clipExtraction.formatLabel'
   | 'components.audioPlayer.clipExtraction.rangeLabel' // params: start, end
+  | 'components.audioPlayer.processing.playSelection'
+  | 'components.audioPlayer.processing.skipToStart'
+  | 'components.audioPlayer.processing.clearSelection'
+  | 'components.audioPlayer.processing.gain'
+  | 'components.audioPlayer.processing.denoise'
+  | 'components.audioPlayer.processing.denoiseOff'
+  | 'components.audioPlayer.processing.denoiseLight'
+  | 'components.audioPlayer.processing.denoiseMedium'
+  | 'components.audioPlayer.processing.denoiseHeavy'
+  | 'components.audioPlayer.processing.normalize'
+  | 'components.audioPlayer.processing.normalizeTooltip'
+  | 'components.audioPlayer.processing.export'
+  | 'components.audioPlayer.processing.exportOriginal'
+  | 'components.audioPlayer.processing.processingActive'
   | 'components.weatherInfo.errors.loadFailed'
   | 'components.tls.certificateInstalled'
   | 'components.tls.browseFile'
@@ -3088,6 +3138,9 @@ export type TranslationParams = {
     total: string | number;
   };
   'detections.row.viewDetails': { species: string | number };
+  'detections.media.videoPreviewAlt': { species: string | number };
+  'detections.media.spectrogramPreviewAlt': { species: string | number };
+  'detections.media.videoAria': { species: string | number };
   'detections.aria.loaded': { species: string | number };
   'detections.aria.error': { error: string | number };
   'detections.errors.loadFailed': { status: string | number };

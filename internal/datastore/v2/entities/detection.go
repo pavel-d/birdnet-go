@@ -23,7 +23,8 @@ type Detection struct {
 	Longitude *float64
 
 	// Audio clip reference
-	ClipName *string `gorm:"type:varchar(500)"`
+	ClipName      *string `gorm:"type:varchar(500)"`
+	VideoClipName *string `gorm:"type:varchar(500)"`
 
 	// Processing metadata
 	ProcessingTimeMs *int64 // Milliseconds

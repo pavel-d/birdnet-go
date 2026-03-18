@@ -519,6 +519,7 @@ func (ds *Datastore) Save(note *datastore.Note, results []datastore.Results) err
 		if err := tx.Create(det).Error; err != nil {
 			return fmt.Errorf("failed to save detection: %w", err)
 		}
+		note.ID = det.ID
 
 		if len(results) > 0 && len(predLabels) > 0 {
 			preds := buildDedupedPredictions(det.ID, results, predLabels)
@@ -565,6 +566,15 @@ func (ds *Datastore) Delete(id string) error {
 		return err
 	}
 	return ds.detection.Delete(ctx, noteID)
+}
+
+// SetVideoClipName updates the saved video clip path for a detection.
+func (ds *Datastore) SetVideoClipName(ctx context.Context, id string, videoClipName string) error {
+	noteID, err := parseID(id)
+	if err != nil {
+		return err
+	}
+	return ds.detection.Update(ctx, noteID, map[string]any{"video_clip_name": videoClipName})
 }
 
 // Get retrieves a note by ID.
@@ -614,6 +624,10 @@ func (ds *Datastore) detectionToNote(det *entities.Detection) datastore.Note {
 	clipName := ""
 	if det.ClipName != nil {
 		clipName = *det.ClipName
+	}
+	videoClipName := ""
+	if det.VideoClipName != nil {
+		videoClipName = *det.VideoClipName
 	}
 
 	lat := 0.0
@@ -693,6 +707,7 @@ func (ds *Datastore) detectionToNote(det *entities.Detection) datastore.Note {
 		Latitude:       lat,
 		Longitude:      lon,
 		ClipName:       clipName,
+		VideoClipName:  videoClipName,
 		BeginTime:      beginTime,
 		EndTime:        endTime,
 		ProcessingTime: processingTime,
@@ -759,6 +774,12 @@ func (ds *Datastore) detectionToRecord(det *entities.Detection) datastore.Detect
 		audioFilePath = *det.ClipName
 		hasAudio = true
 	}
+	videoFilePath := ""
+	hasVideo := false
+	if det.VideoClipName != nil && *det.VideoClipName != "" {
+		videoFilePath = *det.VideoClipName
+		hasVideo = true
+	}
 
 	// Verification status from Review
 	verified := "unverified"
@@ -795,9 +816,11 @@ func (ds *Datastore) detectionToRecord(det *entities.Detection) datastore.Detect
 		Longitude:      lon,
 		Week:           week,
 		AudioFilePath:  audioFilePath,
+		VideoFilePath:  videoFilePath,
 		Verified:       verified,
 		Locked:         locked,
 		HasAudio:       hasAudio,
+		HasVideo:       hasVideo,
 		Device:         device,
 		Source:         source,
 		TimeOfDay:      timeOfDay,

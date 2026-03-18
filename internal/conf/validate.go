@@ -281,6 +281,47 @@ func (r *RTSPSettings) ValidateStreams() error {
 	return nil
 }
 
+// ValidateVideoExport validates RTSP video export settings.
+func (r *RTSPSettings) ValidateVideoExport(audioExport *ExportSettings, maxClipDurationSeconds int) error {
+	if !r.VideoExport.Enabled {
+		return nil
+	}
+
+	if audioExport == nil || !audioExport.Enabled {
+		return fmt.Errorf("rtsp video export requires audio export to be enabled")
+	}
+
+	if strings.TrimSpace(r.VideoExport.Path) == "" {
+		return fmt.Errorf("rtsp video export path is required")
+	}
+
+	if r.VideoExport.Format != "mp4" {
+		return fmt.Errorf("unsupported rtsp video export format: %s", r.VideoExport.Format)
+	}
+
+	if r.VideoExport.SegmentDurationSeconds < MinVideoExportSegmentDurationSeconds ||
+		r.VideoExport.SegmentDurationSeconds > MaxVideoExportSegmentDurationSeconds {
+		return fmt.Errorf("rtsp video export segment duration must be between %d and %d seconds, got %d",
+			MinVideoExportSegmentDurationSeconds, MaxVideoExportSegmentDurationSeconds, r.VideoExport.SegmentDurationSeconds)
+	}
+
+	requiredBufferSeconds := audioExport.Length
+	if maxClipDurationSeconds > requiredBufferSeconds {
+		requiredBufferSeconds = maxClipDurationSeconds
+	}
+	if r.VideoExport.BufferSeconds < requiredBufferSeconds {
+		return fmt.Errorf("rtsp video export buffer must be at least %d seconds, got %d",
+			requiredBufferSeconds, r.VideoExport.BufferSeconds)
+	}
+
+	if r.VideoExport.BufferSeconds < r.VideoExport.SegmentDurationSeconds {
+		return fmt.Errorf("rtsp video export buffer must be at least one segment (%d seconds), got %d",
+			r.VideoExport.SegmentDurationSeconds, r.VideoExport.BufferSeconds)
+	}
+
+	return nil
+}
+
 // ValidateBirdNETSettings performs BirdNET validation without side effects.
 // Returns normalized settings and any errors/warnings.
 // This pure function enables testing without log output or settings mutation.
@@ -943,6 +984,18 @@ func validateRealtimeSettings(settings *RealtimeSettings) error {
 		return errors.New(err).
 			Category(errors.CategoryValidation).
 			Context("validation_type", "stream-config").
+			Build()
+	}
+
+	maxClipDurationSeconds := settings.Audio.Export.Length
+	if settings.ExtendedCapture.Enabled && settings.ExtendedCapture.MaxDuration > maxClipDurationSeconds {
+		maxClipDurationSeconds = settings.ExtendedCapture.MaxDuration
+	}
+
+	if err := settings.RTSP.ValidateVideoExport(&settings.Audio.Export, maxClipDurationSeconds); err != nil {
+		return errors.New(err).
+			Category(errors.CategoryValidation).
+			Context("validation_type", "rtsp-video-export").
 			Build()
 	}
 

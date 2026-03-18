@@ -42,6 +42,7 @@ type Result struct {
 
 	// Output
 	ClipName       string        // Saved audio clip filename
+	VideoClipName  string        // Saved video clip filename
 	ProcessingTime time.Duration // How long analysis took
 
 	// Runtime-only data (not persisted)

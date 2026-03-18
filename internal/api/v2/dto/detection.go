@@ -2,6 +2,7 @@
 package dto
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/tphakala/birdnet-go/internal/detection"
@@ -10,22 +11,25 @@ import (
 // DetectionResponse is the API response for detection endpoints.
 // Uses camelCase JSON tags per REST API conventions.
 type DetectionResponse struct {
-	ID             uint        `json:"id"`
-	Date           string      `json:"date"`      // "2024-01-15"
-	Time           string      `json:"time"`      // "14:30:00"
-	Timestamp      string      `json:"timestamp"` // ISO8601 with TZ
-	ScientificName string      `json:"scientificName"`
-	CommonName     string      `json:"commonName"`
-	SpeciesCode    string      `json:"speciesCode,omitempty"`
-	Confidence     float64     `json:"confidence"`
-	Latitude       float64     `json:"latitude,omitempty"`
-	Longitude      float64     `json:"longitude,omitempty"`
-	ClipName       string      `json:"clipName,omitempty"`
-	Verified       string      `json:"verified,omitempty"`
-	Locked         bool        `json:"locked"`
-	Source         *SourceInfo `json:"source,omitempty"`
-	Model          *ModelInfo  `json:"model,omitempty"`
-	Comments       []Comment   `json:"comments,omitempty"`
+	ID                   uint        `json:"id"`
+	Date                 string      `json:"date"`      // "2024-01-15"
+	Time                 string      `json:"time"`      // "14:30:00"
+	Timestamp            string      `json:"timestamp"` // ISO8601 with TZ
+	ScientificName       string      `json:"scientificName"`
+	CommonName           string      `json:"commonName"`
+	SpeciesCode          string      `json:"speciesCode,omitempty"`
+	Confidence           float64     `json:"confidence"`
+	Latitude             float64     `json:"latitude,omitempty"`
+	Longitude            float64     `json:"longitude,omitempty"`
+	ClipName             string      `json:"clipName,omitempty"`
+	VideoClipName        string      `json:"videoClipName,omitempty"`
+	HasVideo             bool        `json:"hasVideo,omitempty"`
+	VideoPreviewImageURL string      `json:"videoPreviewImageUrl,omitempty"`
+	Verified             string      `json:"verified,omitempty"`
+	Locked               bool        `json:"locked"`
+	Source               *SourceInfo `json:"source,omitempty"`
+	Model                *ModelInfo  `json:"model,omitempty"`
+	Comments             []Comment   `json:"comments,omitempty"`
 
 	// Time context
 	BeginTime string `json:"beginTime,omitempty"`
@@ -97,6 +101,8 @@ func NewDetectionResponse(r *detection.Result) *DetectionResponse {
 		Latitude:       r.Latitude,
 		Longitude:      r.Longitude,
 		ClipName:       r.ClipName,
+		VideoClipName:  r.VideoClipName,
+		HasVideo:       r.VideoClipName != "",
 		Verified:       r.Verified,
 		Locked:         r.Locked,
 	}
@@ -107,6 +113,9 @@ func NewDetectionResponse(r *detection.Result) *DetectionResponse {
 	}
 	if !r.EndTime.IsZero() {
 		dto.EndTime = r.EndTime.Format(time.RFC3339)
+	}
+	if r.VideoClipName != "" {
+		dto.VideoPreviewImageURL = fmt.Sprintf("/api/v2/video/%d/poster", r.ID)
 	}
 
 	// Add source info if available

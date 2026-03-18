@@ -2322,7 +2322,7 @@ func (ds *DataStore) SearchDetections(filters *SearchFilters) ([]DetectionRecord
 
 	// Select necessary fields, including potentially null fields from joins
 	query = query.Select("notes.id, notes.date, notes.time, notes.scientific_name, notes.common_name, notes.confidence, " +
-		"notes.latitude, notes.longitude, notes.clip_name, notes.source_node, " +
+		"notes.latitude, notes.longitude, notes.clip_name, notes.video_clip_name, notes.source_node, " +
 		"note_reviews.verified AS review_verified, " + // Select review status
 		"note_locks.id IS NOT NULL AS is_locked") // Select lock status as boolean
 
@@ -2382,6 +2382,7 @@ func (ds *DataStore) SearchDetections(filters *SearchFilters) ([]DetectionRecord
 		Latitude       float64
 		Longitude      float64
 		ClipName       string
+		VideoClipName  string
 		SourceNode     string
 		ReviewVerified *string // Use pointer to handle NULL for review status
 		IsLocked       bool    // Boolean result from IS NOT NULL
@@ -2473,9 +2474,11 @@ func (ds *DataStore) SearchDetections(filters *SearchFilters) ([]DetectionRecord
 			Longitude:      scanned.Longitude,
 			Week:           week,
 			AudioFilePath:  scanned.ClipName,
+			VideoFilePath:  scanned.VideoClipName,
 			Verified:       verifiedStatus,   // Use derived status
 			Locked:         scanned.IsLocked, // Use derived status
 			HasAudio:       scanned.ClipName != "",
+			HasVideo:       scanned.VideoClipName != "",
 			Device:         scanned.SourceNode,
 			Source:         "",        // Source field was runtime-only, not stored in database
 			TimeOfDay:      timeOfDay, // Include calculated time of day

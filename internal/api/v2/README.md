@@ -145,6 +145,8 @@ Lightweight connectivity check. Returns a minimal response with no database quer
 | GET    | `/media/audio/:filename`             | `ServeAudioClip`         | ❌   | Serve audio file                   |
 | GET    | `/media/spectrogram/:filename`       | `ServeSpectrogram`       | ❌   | Serve spectrogram image            |
 | GET    | `/media/audio`                       | `ServeAudioByQueryID`    | ❌   | Serve audio by detection ID        |
+| GET    | `/video/:id`                         | `ServeVideoByID`         | ❌   | Serve saved RTSP video by ID       |
+| GET    | `/video/:id/poster`                  | `ServeVideoPosterByID`   | ❌   | Serve saved video poster image     |
 | GET    | `/media/species-image`               | `GetSpeciesImage`        | ❌   | Get species thumbnail image        |
 | GET    | `/media/species-image/info`          | `GetSpeciesImageInfo`    | ❌   | Get species image attribution      |
 | GET    | `/media/image/:scientific_name`      | `ServeSpeciesImageProxy` | ❌   | Serve cached bird image (proxy)    |
@@ -201,6 +203,13 @@ Lightweight connectivity check. Returns a minimal response with no database quer
 - `startTime` / `endTime` (string, `"HH:MM"`): Fixed mode start/end times
 - `startEvent` / `endEvent` (`"sunrise"` | `"sunset"`): Solar mode events
 - `startOffset` / `endOffset` (int, -180 to 180): Minutes offset from solar event
+
+**Detection media fields** (`detections.go`, `dto/detection.go`): detection responses may include optional saved RTSP video metadata:
+
+- `clipName` (string): saved audio clip path
+- `videoClipName` (string): saved video clip path when present
+- `hasVideo` (bool): whether a saved detection video clip exists
+- `videoPreviewImageUrl` (string): poster image endpoint for preview surfaces
 
 ### Filesystem (`filesystem.go`)
 

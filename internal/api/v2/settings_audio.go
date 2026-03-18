@@ -81,6 +81,10 @@ func extendedCaptureSettingsChanged(oldSettings, currentSettings *conf.Settings)
 	return false
 }
 
+func rtspVideoExportSettingsChanged(oldSettings, currentSettings *conf.Settings) bool {
+	return !reflect.DeepEqual(oldSettings.Realtime.RTSP.VideoExport, currentSettings.Realtime.RTSP.VideoExport)
+}
+
 // handleAudioSettingsChanges checks for audio-related settings changes and triggers appropriate actions
 func (c *Controller) handleAudioSettingsChanges(oldSettings, currentSettings *conf.Settings) ([]string, error) {
 	var reconfigActions []string
@@ -106,6 +110,12 @@ func (c *Controller) handleAudioSettingsChanges(oldSettings, currentSettings *co
 	if extendedCaptureSettingsChanged(oldSettings, currentSettings) {
 		c.Debug("Extended capture settings changed. A restart will be required.")
 		_ = c.SendToastWithKey("Extended capture settings changed. Restart required to apply changes.", "warning", toastDurationExtended,
+			notification.MsgSettingsExtendedCaptureRestart, nil)
+	}
+
+	if rtspVideoExportSettingsChanged(oldSettings, currentSettings) {
+		c.Debug("RTSP video export settings changed. A restart will be required.")
+		_ = c.SendToastWithKey("RTSP video export settings changed. Restart required to apply changes.", "warning", toastDurationExtended,
 			notification.MsgSettingsExtendedCaptureRestart, nil)
 	}
 

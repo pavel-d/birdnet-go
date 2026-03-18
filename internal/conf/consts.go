@@ -22,4 +22,10 @@ const (
 	MaxExtendedCaptureDuration        = 1200 // Absolute max (20 minutes)
 	ExtendedCaptureBufferMargin       = 60   // Margin added to MaxDuration for buffer sizing
 	ExtendedCaptureMinBufferMargin    = 30   // Minimum margin above MaxDuration + PreCapture
+
+	// RTSP video export defaults
+	DefaultVideoExportSegmentDurationSeconds = 5
+	DefaultVideoExportBufferSeconds          = 120
+	MinVideoExportSegmentDurationSeconds     = 1
+	MaxVideoExportSegmentDurationSeconds     = 30
 )

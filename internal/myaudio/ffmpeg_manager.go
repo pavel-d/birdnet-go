@@ -132,6 +132,17 @@ func (m *FFmpegManager) StartStream(url, transport string, audioChan chan Unifie
 	// Stream already created above
 	m.streams[url] = stream
 
+	if err := StartRTSPVideoRecorder(stream.source, transport); err != nil {
+		delete(m.streams, url)
+		return errors.Newf("failed to start RTSP video recorder: %w", err).
+			Category(errors.CategorySystem).
+			Component("ffmpeg-manager").
+			Context("operation", "start_stream_video_recorder").
+			Context("url", privacy.SanitizeStreamUrl(url)).
+			Context("source_id", stream.source.ID).
+			Build()
+	}
+
 	// Start stream in goroutine
 	m.wg.Go(func() {
 		stream.Run(m.ctx)
@@ -186,6 +197,14 @@ func (m *FFmpegManager) StopStream(url string) error {
 	// Go 1.25 Knowledge: In testing/synctest, holding a mutex during time.Sleep causes deadlock
 	// because goroutines waiting on the mutex are not durably blocked, preventing time advancement
 	m.streamsMu.Unlock()
+
+	if err := StopRTSPVideoRecorder(sourceID); err != nil {
+		getManagerLogger().Warn("failed to stop RTSP video recorder",
+			logger.String("url", privacy.SanitizeStreamUrl(url)),
+			logger.String("source_id", sourceID),
+			logger.Error(err),
+			logger.String("operation", "stop_stream_video_recorder"))
+	}
 
 	// Clean up buffers for the stream using source ID (buffers are keyed by source ID)
 	// Wait a short time for any in-flight writes to complete

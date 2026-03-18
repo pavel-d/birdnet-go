@@ -333,6 +333,29 @@ func (dw *DualWriteRepository) Save(ctx context.Context, result *detection.Resul
 	return nil
 }
 
+// SetVideoClipName updates the saved video clip path for a detection.
+func (dw *DualWriteRepository) SetVideoClipName(ctx context.Context, id string, videoClipName string) error {
+	if err := dw.legacy.SetVideoClipName(ctx, id, videoClipName); err != nil {
+		return err
+	}
+
+	detectionID, err := parseDetectionID(id)
+	if err != nil {
+		return err
+	}
+
+	dualWrite, err := dw.stateManager.IsInDualWriteMode()
+	if err != nil {
+		dw.logger.Warn("failed to check dual-write mode for video clip update", logger.Error(err))
+		return nil
+	}
+	if !dualWrite {
+		return nil
+	}
+
+	return dw.v2.Update(ctx, detectionID, map[string]any{"video_clip_name": videoClipName})
+}
+
 // syncToV2 performs the core v2 save/upsert logic and returns an error on failure.
 // This is the inner logic used by both the async save path and the reconciliation loop.
 func (dw *DualWriteRepository) syncToV2(ctx context.Context, result *detection.Result, additionalResults []detection.AdditionalResult) error {

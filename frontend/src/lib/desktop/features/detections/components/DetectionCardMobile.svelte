@@ -1,6 +1,7 @@
 <script lang="ts">
   // Use prop callback instead of legacy event dispatcher
   import ConfidenceCircle from '$lib/desktop/components/data/ConfidenceCircle.svelte';
+  import DetectionPreviewMedia from '$lib/desktop/components/media/DetectionPreviewMedia.svelte';
   import StatusBadges from '$lib/desktop/components/data/StatusBadges.svelte';
   import { Volume2 } from '@lucide/svelte';
   import { t } from '$lib/i18n';
@@ -22,9 +23,6 @@
 
   // Legacy dispatcher removed
 
-  let spectrogramError = $state(false);
-  let spectrogramUrl = $derived(`/api/v2/spectrogram/${detection.id}?size=md`);
-
   function handlePlay() {
     const audioUrl = `/api/v2/audio/${detection.id}`;
     if (onPlayMobileAudio) {
@@ -42,15 +40,13 @@
 </script>
 
 <section class={`card bg-[var(--color-base-100)] shadow-xs relative overflow-hidden ${className}`}>
-  {#if spectrogramUrl && !spectrogramError}
-    <img
-      src={spectrogramUrl}
-      alt="Audio spectrogram"
-      class="absolute inset-0 w-full h-full object-cover opacity-20"
-      onerror={() => (spectrogramError = true)}
-    />
-    <div class="absolute inset-0 bg-[var(--color-base-100)]/60"></div>
-  {/if}
+  <DetectionPreviewMedia
+    {detection}
+    className="absolute inset-0"
+    imageClassName="h-full w-full object-cover opacity-20"
+    fallbackClassName="absolute inset-0 flex items-center justify-center bg-[var(--color-base-100)]/20"
+  />
+  <div class="absolute inset-0 bg-[var(--color-base-100)]/60"></div>
   <div class="card-body p-3 space-y-3 relative">
     <!-- Header: Names and confidence -->
     <div class="flex items-start gap-3">

@@ -150,24 +150,28 @@ type CommentResponse struct {
 
 // DetectionResponse represents a detection in the API response
 type DetectionResponse struct {
-	ID                 uint              `json:"id"`
-	Date               string            `json:"date"`
-	Time               string            `json:"time"`
-	Timestamp          string            `json:"timestamp,omitempty"` // ISO8601/RFC3339 with timezone
-	Source             string            `json:"source"`
-	BeginTime          string            `json:"beginTime"`
-	EndTime            string            `json:"endTime"`
-	SpeciesCode        string            `json:"speciesCode"`
-	ScientificName     string            `json:"scientificName"`
-	CommonName         string            `json:"commonName"`
-	Confidence         float64           `json:"confidence"`
-	Verified           string            `json:"verified"`
-	Locked             bool              `json:"locked"`
-	Comments           []CommentResponse `json:"comments,omitempty"`
-	Weather            *WeatherInfo      `json:"weather,omitempty"`
-	TimeOfDay          string            `json:"timeOfDay,omitempty"`
-	IsNewSpecies       bool              `json:"isNewSpecies,omitempty"`       // First seen within tracking window
-	DaysSinceFirstSeen int               `json:"daysSinceFirstSeen,omitempty"` // Days since species was first detected
+	ID                   uint              `json:"id"`
+	Date                 string            `json:"date"`
+	Time                 string            `json:"time"`
+	Timestamp            string            `json:"timestamp,omitempty"` // ISO8601/RFC3339 with timezone
+	Source               string            `json:"source"`
+	ClipName             string            `json:"clipName,omitempty"`
+	VideoClipName        string            `json:"videoClipName,omitempty"`
+	HasVideo             bool              `json:"hasVideo,omitempty"`
+	VideoPreviewImageURL string            `json:"videoPreviewImageUrl,omitempty"`
+	BeginTime            string            `json:"beginTime"`
+	EndTime              string            `json:"endTime"`
+	SpeciesCode          string            `json:"speciesCode"`
+	ScientificName       string            `json:"scientificName"`
+	CommonName           string            `json:"commonName"`
+	Confidence           float64           `json:"confidence"`
+	Verified             string            `json:"verified"`
+	Locked               bool              `json:"locked"`
+	Comments             []CommentResponse `json:"comments,omitempty"`
+	Weather              *WeatherInfo      `json:"weather,omitempty"`
+	TimeOfDay            string            `json:"timeOfDay,omitempty"`
+	IsNewSpecies         bool              `json:"isNewSpecies,omitempty"`       // First seen within tracking window
+	DaysSinceFirstSeen   int               `json:"daysSinceFirstSeen,omitempty"` // Days since species was first detected
 
 	// Multi-period tracking metadata
 	IsNewThisYear   bool   `json:"isNewThisYear,omitempty"`   // First time this year
@@ -601,6 +605,9 @@ func (c *Controller) noteToDetectionResponse(note *datastore.Note, includeWeathe
 		Date:           note.Date,
 		Time:           note.Time,
 		Source:         note.Source.SafeString,
+		ClipName:       note.ClipName,
+		VideoClipName:  note.VideoClipName,
+		HasVideo:       note.VideoClipName != "",
 		BeginTime:      note.BeginTime.Format(time.RFC3339),
 		EndTime:        note.EndTime.Format(time.RFC3339),
 		SpeciesCode:    note.SpeciesCode,
@@ -616,6 +623,10 @@ func (c *Controller) noteToDetectionResponse(note *datastore.Note, includeWeathe
 		detection.Timestamp = t.Format(time.RFC3339)
 	} else {
 		c.Debug("Failed to parse detection timestamp from date=%q time=%q: %v", note.Date, note.Time, err)
+	}
+
+	if note.VideoClipName != "" {
+		detection.VideoPreviewImageURL = fmt.Sprintf("/api/v2/video/%d/poster", note.ID)
 	}
 
 	c.applySpeciesTrackingMetadata(&detection, note.ScientificName)

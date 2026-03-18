@@ -44,6 +44,7 @@
     type EqualizerFilterType,
     type QuietHoursConfig,
     type StreamConfig,
+    type VideoExportSettings,
   } from '$lib/stores/settings';
   import { hasSettingsChanged } from '$lib/utils/settingsChanges';
   import SettingsTabs, {
@@ -100,6 +101,11 @@
       { value: 'age', label: t('settings.audio.audioClipRetention.policies.age') },
       { value: 'usage', label: t('settings.audio.audioClipRetention.policies.usage') },
     ];
+  });
+
+  const videoExportFormatOptions = $derived.by(() => {
+    getLocale();
+    return [{ value: 'mp4', label: 'MP4' }];
   });
 
   // Maximum disk usage options as derived store for consistency
@@ -166,6 +172,13 @@
           healthyDataThreshold: 60,
           monitoringInterval: 30,
         },
+        videoExport: {
+          enabled: false,
+          path: 'clips/video/',
+          format: 'mp4' as const,
+          segmentDurationSeconds: 5,
+          bufferSeconds: 120,
+        },
       };
 
       // Ensure streams is always an array even if rtspSettings exists but has undefined/null streams
@@ -181,6 +194,13 @@
         rtsp: {
           streams: rtspBase.streams ?? [], // Always ensures streams is an array
           health: rtspBase.health,
+          videoExport: {
+            enabled: rtspBase.videoExport?.enabled ?? false,
+            path: rtspBase.videoExport?.path ?? 'clips/video/',
+            format: rtspBase.videoExport?.format ?? 'mp4',
+            segmentDurationSeconds: rtspBase.videoExport?.segmentDurationSeconds ?? 5,
+            bufferSeconds: rtspBase.videoExport?.bufferSeconds ?? 120,
+          },
         },
       };
     })()
@@ -204,10 +224,7 @@
 
   // Streams tab changes
   let streamsTabHasChanges = $derived(
-    hasSettingsChanged(
-      store.originalData.realtime?.rtsp?.streams,
-      store.formData.realtime?.rtsp?.streams
-    )
+    hasSettingsChanged(store.originalData.realtime?.rtsp, store.formData.realtime?.rtsp)
   );
 
   // Audio Normalization section changes (moved here for dependency order)
@@ -449,6 +466,18 @@
       rtsp: {
         ...currentRtsp,
         streams,
+      },
+    });
+  }
+
+  function updateRTSPVideoExport(videoExport: VideoExportSettings) {
+    const storeState = $settingsStore;
+    const currentRtsp = storeState.formData.realtime?.rtsp || { streams: [] };
+
+    settingsActions.updateSection('realtime', {
+      rtsp: {
+        ...currentRtsp,
+        videoExport,
       },
     });
   }
@@ -777,6 +806,136 @@
         disabled={store.isLoading || store.isSaving}
         onUpdateStreams={updateRTSPStreams}
       />
+    </SettingsSection>
+
+    <SettingsSection
+      title={t('settings.audio.rtspStreams.videoExport.title')}
+      description={t('settings.audio.rtspStreams.videoExport.description')}
+      originalData={store.originalData.realtime?.rtsp?.videoExport}
+      currentData={store.formData.realtime?.rtsp?.videoExport}
+    >
+      {#if !settings.audio.export.enabled}
+        <div
+          class="mb-4 flex items-start gap-3 rounded-lg bg-[color-mix(in_srgb,var(--color-info)_15%,transparent)] p-4 text-[var(--color-info)]"
+        >
+          <Info class="size-6 shrink-0" />
+          <span>{t('settings.audio.rtspStreams.videoExport.requiresAudioExport')}</span>
+        </div>
+      {/if}
+
+      <div class="space-y-4">
+        <Checkbox
+          checked={settings.rtsp.videoExport.enabled}
+          label={t('settings.audio.rtspStreams.videoExport.enabledLabel')}
+          helpText={t('settings.audio.rtspStreams.videoExport.enabledHelp')}
+          disabled={!settings.audio.export.enabled || store.isLoading || store.isSaving}
+          onchange={enabled =>
+            updateRTSPVideoExport({
+              ...settings.rtsp.videoExport,
+              enabled,
+            })}
+        />
+
+        <fieldset
+          disabled={!settings.rtsp.videoExport.enabled ||
+            !settings.audio.export.enabled ||
+            store.isLoading ||
+            store.isSaving}
+          class="contents"
+          aria-describedby="video-export-status"
+        >
+          <span id="video-export-status" class="sr-only">
+            {settings.rtsp.videoExport.enabled
+              ? t('settings.audio.rtspStreams.videoExport.enabledLabel')
+              : t('settings.audio.rtspStreams.videoExport.disabled')}
+          </span>
+
+          <div
+            class="space-y-4 transition-opacity duration-200"
+            class:opacity-50={!settings.rtsp.videoExport.enabled || !settings.audio.export.enabled}
+          >
+            <div class="settings-form-grid">
+              <TextInput
+                value={settings.rtsp.videoExport.path}
+                label={t('settings.audio.rtspStreams.videoExport.pathLabel')}
+                helpText={t('settings.audio.rtspStreams.videoExport.pathHelp')}
+                disabled={!settings.rtsp.videoExport.enabled ||
+                  !settings.audio.export.enabled ||
+                  store.isLoading ||
+                  store.isSaving}
+                onchange={path =>
+                  updateRTSPVideoExport({
+                    ...settings.rtsp.videoExport,
+                    path,
+                  })}
+              />
+
+              <SelectDropdown
+                value={settings.rtsp.videoExport.format}
+                label={t('settings.audio.rtspStreams.videoExport.formatLabel')}
+                helpText={t('settings.audio.rtspStreams.videoExport.formatHelp')}
+                disabled={!settings.rtsp.videoExport.enabled ||
+                  !settings.audio.export.enabled ||
+                  store.isLoading ||
+                  store.isSaving}
+                onChange={value =>
+                  updateRTSPVideoExport({
+                    ...settings.rtsp.videoExport,
+                    format: value as VideoExportSettings['format'],
+                  })}
+                options={videoExportFormatOptions}
+                groupBy={false}
+                menuSize="sm"
+              />
+
+              <NumberField
+                label={t('settings.audio.rtspStreams.videoExport.segmentDurationLabel')}
+                value={settings.rtsp.videoExport.segmentDurationSeconds}
+                onUpdate={segmentDurationSeconds =>
+                  updateRTSPVideoExport({
+                    ...settings.rtsp.videoExport,
+                    segmentDurationSeconds,
+                  })}
+                min={1}
+                max={30}
+                step={1}
+                helpText={t('settings.audio.rtspStreams.videoExport.segmentDurationHelp')}
+                disabled={!settings.rtsp.videoExport.enabled ||
+                  !settings.audio.export.enabled ||
+                  store.isLoading ||
+                  store.isSaving}
+              />
+
+              <NumberField
+                label={t('settings.audio.rtspStreams.videoExport.bufferSecondsLabel')}
+                value={settings.rtsp.videoExport.bufferSeconds}
+                onUpdate={bufferSeconds =>
+                  updateRTSPVideoExport({
+                    ...settings.rtsp.videoExport,
+                    bufferSeconds,
+                  })}
+                min={10}
+                max={3600}
+                step={1}
+                helpText={t('settings.audio.rtspStreams.videoExport.bufferSecondsHelp')}
+                disabled={!settings.rtsp.videoExport.enabled ||
+                  !settings.audio.export.enabled ||
+                  store.isLoading ||
+                  store.isSaving}
+              />
+            </div>
+
+            <SettingsNote>
+              <p class="font-semibold">
+                {t('settings.audio.rtspStreams.videoExport.restartRequired')}
+              </p>
+              <p class="text-sm opacity-90">
+                {t('settings.audio.rtspStreams.videoExport.rtspOnly')}
+              </p>
+            </SettingsNote>
+          </div>
+        </fieldset>
+      </div>
     </SettingsSection>
   </div>
 {/snippet}
