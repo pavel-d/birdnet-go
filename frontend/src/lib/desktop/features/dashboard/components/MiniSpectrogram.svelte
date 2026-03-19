@@ -204,17 +204,22 @@
             /* autoplay blocked — spectrogram still renders */
           }
           if (signal.aborted) return;
+
+          // Mark as active BEFORE spectro.connect() — the connect may hang
+          // if AudioContext.resume() blocks on autoplay policy (no user gesture
+          // on page reload). The spectrogram canvas will show black until the
+          // context resumes, which is better than an infinite spinner.
+          startHeartbeat(activeStreamToken!);
+          isActive = true;
+          isConnecting = false;
+          persistToggleState(true);
+
           if (audioElement) {
             await spectro.connect(audioElement);
           }
           if (signal.aborted) {
             spectro.disconnect();
-            return;
           }
-          startHeartbeat(activeStreamToken!);
-          isActive = true;
-          isConnecting = false;
-          persistToggleState(true);
         });
 
         hls.on(Hls.Events.ERROR, (_event, data) => {
@@ -236,15 +241,17 @@
           /* autoplay blocked */
         }
         if (signal.aborted || !audioElement) return;
-        await spectro.connect(audioElement);
-        if (signal.aborted) {
-          spectro.disconnect();
-          return;
-        }
+
+        // Mark active before spectro.connect() — see MANIFEST_PARSED comment above
         startHeartbeat(activeStreamToken!);
         isActive = true;
         isConnecting = false;
         persistToggleState(true);
+
+        await spectro.connect(audioElement);
+        if (signal.aborted) {
+          spectro.disconnect();
+        }
       } else {
         // Browser supports neither HLS.js nor native HLS — tear down
         logger.warn('MiniSpectrogram: browser does not support HLS');
