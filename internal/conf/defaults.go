@@ -149,6 +149,8 @@ func setDefaultConfig() {
 	viper.SetDefault("realtime.dashboard.summarylimit", 30)
 	viper.SetDefault("realtime.dashboard.locale", "en")               // Default UI locale
 	viper.SetDefault("realtime.dashboard.temperatureunit", "celsius") // Temperature display unit: "celsius" or "fahrenheit"
+	viper.SetDefault("realtime.dashboard.defaultaudiogain", 0.0)      // Default playback gain in dB (no boost)
+	viper.SetDefault("realtime.dashboard.livespectrogram", false)     // Auto-start live spectrogram on dashboard
 
 	// Spectrogram pre-rendering configuration
 	viper.SetDefault("realtime.dashboard.spectrogram.enabled", false)                                // Opt-in for safety
@@ -354,6 +356,7 @@ func setDefaultConfig() {
 	viper.SetDefault("security.redirecttohttps", false)
 	viper.SetDefault("security.allowsubnetbypass.enabled", false)
 	viper.SetDefault("security.allowsubnetbypass.subnet", "")
+	viper.SetDefault("security.publicaccess.liveaudio", false)
 	viper.SetDefault("security.sessionduration", "168h") // 7 days
 
 	// Basic authentication configuration

@@ -13,6 +13,128 @@ import (
 	"github.com/tphakala/birdnet-go/internal/conf"
 )
 
+// TestDashboardLayoutWidthPersistence verifies that changing element width from
+// "half" to "full" (omitted in JSON) correctly clears the old width value.
+// Regression test for: json.Unmarshal reuses existing slice elements, so
+// omitted fields (like width via omitempty) retained their old values.
+func TestDashboardLayoutWidthPersistence(t *testing.T) {
+	initialSettings := getTestSettings(t)
+	initialSettings.Realtime.Dashboard.Layout = conf.DashboardLayout{
+		Elements: []conf.DashboardElement{
+			{ID: "daily-summary-0", Type: "daily-summary", Enabled: true},
+			{ID: "currently-hearing-0", Type: "currently-hearing", Enabled: true, Width: "half"},
+			{ID: "detections-grid-0", Type: "detections-grid", Enabled: true, Width: "half"},
+		},
+	}
+
+	e := echo.New()
+	controller := &Controller{
+		Echo:                e,
+		Settings:            initialSettings,
+		controlChan:         make(chan string, 10),
+		DisableSaveSettings: true,
+	}
+
+	// Simulate the frontend save: elements without width field (user set to full)
+	update := map[string]any{
+		"layout": map[string]any{
+			"elements": []map[string]any{
+				{"id": "daily-summary-0", "type": "daily-summary", "enabled": true},
+				{"id": "currently-hearing-0", "type": "currently-hearing", "enabled": true},
+				{"id": "detections-grid-0", "type": "detections-grid", "enabled": true},
+			},
+		},
+	}
+
+	body, err := json.Marshal(update)
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodPatch, "/api/v2/settings/dashboard", bytes.NewReader(body))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	ctx := e.NewContext(req, rec)
+	ctx.SetParamNames("section")
+	ctx.SetParamValues("dashboard")
+
+	err = controller.UpdateSectionSettings(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rec.Code)
+
+	// The width fields must be cleared (empty string = full width default)
+	elements := controller.Settings.Realtime.Dashboard.Layout.Elements
+	require.Len(t, elements, 3)
+	assert.Empty(t, elements[0].Width, "daily-summary width should be empty")
+	assert.Empty(t, elements[1].Width, "currently-hearing width should be empty (was 'half')")
+	assert.Empty(t, elements[2].Width, "detections-grid width should be empty (was 'half')")
+
+	// Also verify: sending explicit "full" works the same way
+	update2 := map[string]any{
+		"layout": map[string]any{
+			"elements": []map[string]any{
+				{"id": "daily-summary-0", "type": "daily-summary", "enabled": true},
+				{"id": "currently-hearing-0", "type": "currently-hearing", "enabled": true, "width": "full"},
+				{"id": "detections-grid-0", "type": "detections-grid", "enabled": true, "width": "half"},
+			},
+		},
+	}
+
+	body2, err := json.Marshal(update2)
+	require.NoError(t, err)
+
+	req2 := httptest.NewRequest(http.MethodPatch, "/api/v2/settings/dashboard", bytes.NewReader(body2))
+	req2.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec2 := httptest.NewRecorder()
+	ctx2 := e.NewContext(req2, rec2)
+	ctx2.SetParamNames("section")
+	ctx2.SetParamValues("dashboard")
+
+	err = controller.UpdateSectionSettings(ctx2)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rec2.Code)
+
+	elements2 := controller.Settings.Realtime.Dashboard.Layout.Elements
+	require.Len(t, elements2, 3)
+	assert.Equal(t, "full", elements2[1].Width, "currently-hearing should have explicit 'full'")
+	assert.Equal(t, "half", elements2[2].Width, "detections-grid should have 'half'")
+}
+
+// TestMergePreservesJSONDashFields verifies that mergeJSONIntoStruct preserves
+// fields tagged json:"-" (runtime values invisible to JSON) when zeroing slices.
+func TestMergePreservesJSONDashFields(t *testing.T) {
+	initialSettings := getTestSettings(t)
+	// Set runtime-only field (json:"-") that must survive a merge
+	initialSettings.BirdNET.Labels = []string{"species1", "species2"}
+
+	e := echo.New()
+	controller := &Controller{
+		Echo:                e,
+		Settings:            initialSettings,
+		controlChan:         make(chan string, 10),
+		DisableSaveSettings: true,
+	}
+
+	// PATCH birdnet section — Labels (json:"-") must survive
+	update := map[string]any{"sensitivity": 1.0}
+	body, err := json.Marshal(update)
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodPatch, "/api/v2/settings/birdnet", bytes.NewReader(body))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	ctx := e.NewContext(req, rec)
+	ctx.SetParamNames("section")
+	ctx.SetParamValues("birdnet")
+
+	err = controller.UpdateSectionSettings(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rec.Code)
+
+	// Runtime field must be preserved — Labels is json:"-" and would be
+	// destroyed if zeroJSONSliceFields zeroed json:"-" tagged slices.
+	assert.Equal(t, []string{"species1", "species2"}, controller.Settings.BirdNET.Labels,
+		"BirdNET.Labels (json:\"-\") must survive merge")
+}
+
 // TestDashboardPartialUpdate verifies dashboard settings preserve unmodified fields
 func TestDashboardPartialUpdate(t *testing.T) {
 	// Get initial settings and override some values for testing

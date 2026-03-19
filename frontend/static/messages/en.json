@@ -386,6 +386,7 @@
         "reconfiguringBirdweather": "Updating BirdWeather integration...",
         "reconfiguringStreams": "Updating audio streams...",
         "reconfiguringTelemetry": "Updating telemetry settings...",
+        "reconfiguringPushNotifications": "Reconfiguring push notification providers...",
         "reconfiguringSpeciesTracking": "Updating species tracking...",
         "webserverRestartRequired": "Web server settings changed. Restart required.",
         "reconfiguringSoundLevel": "Updating sound level monitoring...",
@@ -648,7 +649,12 @@
         "unlockDetection": "Unlock detection",
         "deleteDetection": "Delete detection"
       },
-      "noDetections": "No recent detections"
+      "noDetections": "No recent detections",
+      "errors": {
+        "toggleSpeciesFailed": "Failed to update species exclusion. Please try again.",
+        "toggleLockFailed": "Failed to update lock status. Please try again.",
+        "deleteFailed": "Failed to delete detection. Please try again."
+      }
     },
     "errors": {
       "dailySummaryFetch": "Failed to fetch daily summary: {status}",
@@ -721,6 +727,7 @@
       "dailySummary": "Daily Summary",
       "currentlyHearing": "Currently Hearing",
       "detectionsGrid": "Recent Detections",
+      "liveSpectrogram": "Live Spectrogram",
       "videoEmbed": "Video Embed"
     }
   },
@@ -732,6 +739,10 @@
       "species": "Results for {species} on {date}",
       "search": "Search Results for \"{query}\"",
       "allDetections": "All Detections for {date}"
+    },
+    "detail": {
+      "species": "Species",
+      "observation": "Observation"
     },
     "headers": {
       "dateTime": "Date & Time",
@@ -894,6 +905,42 @@
       "newThisYear": "First this year",
       "newThisSeason": "First this season",
       "daysSinceFirst": "Days since first seen"
+    }
+  },
+  "spectrogram": {
+    "controls": {
+      "frequencyRange": "Frequency Range",
+      "colorMap": "Color Map",
+      "gain": "Gain",
+      "mute": "Mute",
+      "unmute": "Unmute",
+      "frequencyRangeMin": "Minimum frequency",
+      "frequencyRangeMax": "Maximum frequency"
+    },
+    "error": {
+      "unsupported": "Your browser does not support audio analysis",
+      "connectionFailed": "Failed to connect to live audio stream",
+      "accessDenied": "Live audio access requires authentication. Please log in to use this feature."
+    },
+    "dashboard": {
+      "toggle": "Live Spectrogram",
+      "audioToggle": "Enable audio"
+    },
+    "gain": {
+      "muted": "Muted",
+      "level": "Gain: {value} dB"
+    },
+    "page": {
+      "title": "Live Audio",
+      "sourceLabel": "Audio Source",
+      "connected": "Connected",
+      "enterFullscreen": "Enter fullscreen",
+      "exitFullscreen": "Exit fullscreen"
+    },
+    "colorMaps": {
+      "inferno": "Inferno",
+      "viridis": "Viridis",
+      "grayscale": "Grayscale"
     }
   },
   "system": {
@@ -1563,10 +1610,10 @@
     "title": "Settings - BirdNET-Go",
     "loading": "Loading settings...",
     "sections": {
-      "node": "Main Settings",
-      "userinterface": "User Interface",
-      "audio": "Audio Settings",
-      "filters": "Detection Filters",
+      "node": "General",
+      "userinterface": "Interface",
+      "audio": "Audio",
+      "filters": "Filters",
       "integration": "Integrations",
       "security": "Security",
       "species": "Species",
@@ -3176,6 +3223,16 @@
         "description": "Allow access to settings without authentication",
         "disabled": "Subnet bypass is disabled"
       },
+      "exceptions": {
+        "title": "Exceptions"
+      },
+      "publicAccess": {
+        "title": "Public Access",
+        "description": "Allow specific features to be accessible without authentication.",
+        "liveAudioLabel": "Allow public live audio playback",
+        "liveAudioHelp": "When enabled, anyone can listen to live audio streams without logging in. Settings and deletion still require authentication.",
+        "warningText": "Enabling public access features exposes them to anyone who can reach this server. Only enable if you trust your network environment."
+      },
       "placeholders": {
         "baseUrl": "https://birdnet.example.com:5500",
         "host": "For example, localhost:8080 or example.domain.com",
@@ -3783,7 +3840,8 @@
       "tabs": {
         "appearance": "Appearance",
         "language": "Language & Regional",
-        "visualContent": "Visual Content"
+        "visualContent": "Visual Content",
+        "audioPlayback": "Audio Playback"
       },
       "appearance": {
         "title": "Appearance",
@@ -3796,6 +3854,13 @@
       "visualContent": {
         "title": "Visual Content",
         "description": "Configure bird images and spectrogram display settings"
+      },
+      "audioPlayback": {
+        "title": "Audio Playback",
+        "description": "Default settings for playing bird recordings.",
+        "defaultGain": "Default Volume Boost",
+        "defaultGainHelpText": "Initial gain applied when playing recordings. Bird sounds are often quiet, so a boost of 6-12 dB is recommended.",
+        "defaultGainUnit": "dB"
       }
     },
     "restartRequired": "Some changes require a server restart to take effect. Please restart BirdNET-Go."
@@ -3963,7 +4028,8 @@
       "seekProgress": "Seek audio progress: {current} / {total} seconds",
       "playbackSpeed": "Playback speed",
       "speed": "Speed",
-      "loop": "Toggle loop"
+      "loop": "Toggle loop",
+      "player": "Audio player"
     },
     "video": {
       "playError": "Failed to play video"
@@ -3983,6 +4049,7 @@
       "spectrogramLoading": "Loading spectrogram...",
       "spectrogramLoaded": "Spectrogram loaded",
       "spectrogramLoadingAria": "Loading spectrogram",
+      "spectrogramAlt": "Audio spectrogram",
       "spectrogramGeneratingAria": "Generating spectrogram",
       "generating": "Generating...",
       "queuePosition": "Queue: {position}",
@@ -4228,6 +4295,92 @@
       "excellent": "Calm — excellent for hearing bird calls",
       "moderate": "Moderate wind — some bird calls may be harder to hear",
       "poor": "High wind — bird calls unlikely to be heard"
+    }
+  },
+  "wizard": {
+    "skip": "Skip",
+    "back": "Back",
+    "next": "Next",
+    "done": "Done",
+    "progress": "Step {current} of {total}",
+    "progressLabel": "Wizard progress",
+    "whatsNew": {
+      "title": "What's New in {version}"
+    },
+    "steps": {
+      "welcome": {
+        "title": "Welcome",
+        "heading": "Welcome to BirdNET-Go!",
+        "description": "BirdNET-Go is a real-time bird sound identification system. It listens to audio from your microphone or audio stream and uses the BirdNET AI model to identify bird species.",
+        "credit": "Powered by the BirdNET Analyzer developed by the K. Lisa Yang Center for Conservation Bioacoustics at the Cornell Lab of Ornithology and Chemnitz University of Technology.",
+        "cta": "Let's set up your bird monitoring station."
+      },
+      "locationLanguage": {
+        "title": "Location & Language",
+        "uiLanguageLabel": "Interface Language",
+        "uiLanguageHelp": "Language used for the web interface",
+        "speciesLanguageLabel": "Species Name Language",
+        "speciesLanguageHelp": "Language used for bird species names in detections",
+        "locationLabel": "Station Location",
+        "locationHelp": "Your location helps filter species to those likely in your area",
+        "latitudeLabel": "Latitude",
+        "longitudeLabel": "Longitude",
+        "useMyLocation": "Use my location",
+        "locationDetected": "Location detected",
+        "locationError": "Could not detect location. Please enter coordinates manually.",
+        "locationDenied": "Location access denied. Please enter coordinates manually."
+      },
+      "audioSource": {
+        "title": "Audio Source",
+        "sourceTypeLabel": "Source Type",
+        "soundcard": "Microphone / Soundcard",
+        "rtspStream": "RTSP Stream",
+        "deviceLabel": "Audio Device",
+        "deviceLoading": "Loading audio devices...",
+        "noDevicesFound": "No audio devices detected. Try configuring an RTSP stream instead.",
+        "rtspUrlLabel": "Stream URL",
+        "rtspUrlPlaceholder": "rtsp://user:password@host:port/stream",
+        "rtspUrlHelp": "Enter the URL of your RTSP audio stream",
+        "additionalSourcesHint": "You can add more audio sources later in Settings."
+      },
+      "detection": {
+        "title": "Detection Threshold",
+        "description": "Choose how strict the bird identification should be. You can adjust this later in Settings.",
+        "balanced": "Balanced",
+        "balancedDesc": "Good balance of accuracy and sensitivity",
+        "balancedRecommended": "Recommended",
+        "highAccuracy": "High Accuracy",
+        "highAccuracyDesc": "Fewer false positives, may miss some birds",
+        "highSensitivity": "High Sensitivity",
+        "highSensitivityDesc": "More detections, more false positives",
+        "threshold": "Confidence threshold",
+        "fpFilterNote": "Once your system is running and proven, you can enable the false positive filter in Settings to further reduce incorrect detections."
+      },
+      "integration": {
+        "title": "Privacy & Integration",
+        "privacyFilterLabel": "Enable privacy filter",
+        "privacyFilterHelp": "Filters out detections when human voices are detected near the microphone",
+        "birdweatherLabel": "Share detections with BirdWeather",
+        "birdweatherHelp": "Contribute your bird detections to the BirdWeather community network",
+        "birdweatherIdLabel": "BirdWeather Station ID",
+        "birdweatherIdPlaceholder": "Enter your BirdWeather station ID",
+        "errorReportingLabel": "Send anonymous error reports",
+        "errorReportingHelp": "Help improve BirdNET-Go by sending anonymous error reports when something goes wrong"
+      },
+      "responsibleUse": {
+        "title": "Using BirdNET-Go Responsibly",
+        "intro": "BirdNET-Go is a powerful tool that enhances your birding experience through AI-assisted identification. To ensure the best outcomes for both birding and conservation:",
+        "point1": "Review and verify detections before sharing observations",
+        "point2": "Use the confidence scores as a guide, not absolute truth",
+        "point3": "Cross-reference with field guides and local expertise",
+        "point4": "Consider seasonal patterns and habitat suitability",
+        "citizenScienceHeading": "When contributing to citizen science:",
+        "citizenPoint1": "Only submit observations you have personally verified",
+        "citizenPoint2": "Include notes about visual or behavioral confirmation",
+        "citizenPoint3": "Use AI detections as a starting point for your own observations",
+        "outro": "This approach ensures data quality for scientific research while maximizing your learning and enjoyment of birds.",
+        "acknowledge": "I understand"
+      }
     }
   }
 }

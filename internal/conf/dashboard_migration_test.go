@@ -25,7 +25,7 @@ func TestSettings_MigrateDashboardLayout(t *testing.T) {
 				},
 			},
 			expectMigrated: true,
-			expectElements: 3,
+			expectElements: 4,
 			expectLimit:    50,
 		},
 		{
@@ -55,7 +55,7 @@ func TestSettings_MigrateDashboardLayout(t *testing.T) {
 				},
 			},
 			expectMigrated: true,
-			expectElements: 3,
+			expectElements: 4,
 			expectLimit:    30,
 		},
 	}
@@ -74,13 +74,16 @@ func TestSettings_MigrateDashboardLayout(t *testing.T) {
 				assert.True(t, elements[0].Enabled)
 				assert.Equal(t, "currently-hearing", elements[1].Type)
 				assert.True(t, elements[1].Enabled)
-				assert.Equal(t, "detections-grid", elements[2].Type)
+				assert.Equal(t, "live-spectrogram", elements[2].Type)
 				assert.True(t, elements[2].Enabled)
+				assert.Equal(t, "detections-grid", elements[3].Type)
+				assert.True(t, elements[3].Enabled)
 
 				// Verify stable IDs are generated
 				assert.Equal(t, "daily-summary-0", elements[0].ID)
 				assert.Equal(t, "currently-hearing-0", elements[1].ID)
-				assert.Equal(t, "detections-grid-0", elements[2].ID)
+				assert.Equal(t, "live-spectrogram-0", elements[2].ID)
+				assert.Equal(t, "detections-grid-0", elements[3].ID)
 
 				// Verify summaryLimit is migrated into the element config
 				require.NotNil(t, elements[0].Summary)
@@ -102,10 +105,83 @@ func TestSettings_MigrateDashboardLayout_Idempotent(t *testing.T) {
 
 	migrated1 := settings.MigrateDashboardLayout()
 	require.True(t, migrated1)
-	assert.Len(t, settings.Realtime.Dashboard.Layout.Elements, 3)
+	assert.Len(t, settings.Realtime.Dashboard.Layout.Elements, 4)
 	assert.Equal(t, 0, settings.Realtime.Dashboard.SummaryLimit) // zeroed after migration
 
 	migrated2 := settings.MigrateDashboardLayout()
 	require.False(t, migrated2)
-	assert.Len(t, settings.Realtime.Dashboard.Layout.Elements, 3)
+	assert.Len(t, settings.Realtime.Dashboard.Layout.Elements, 4)
+}
+
+func TestSettings_GetEffectiveSummaryLimit(t *testing.T) {
+	tests := []struct {
+		name     string
+		settings Settings
+		expected int
+	}{
+		{
+			name: "reads from layout element after migration",
+			settings: Settings{
+				Realtime: RealtimeSettings{
+					Dashboard: Dashboard{
+						SummaryLimit: 0, // zeroed by migration
+						Layout: DashboardLayout{
+							Elements: []DashboardElement{
+								{
+									Type:    "daily-summary",
+									Enabled: true,
+									Summary: &DailySummaryConfig{SummaryLimit: 50},
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: 50,
+		},
+		{
+			name: "falls back to deprecated field for pre-migration configs",
+			settings: Settings{
+				Realtime: RealtimeSettings{
+					Dashboard: Dashboard{
+						SummaryLimit: 75,
+					},
+				},
+			},
+			expected: 75,
+		},
+		{
+			name: "returns default when both are zero",
+			settings: Settings{
+				Realtime: RealtimeSettings{
+					Dashboard: Dashboard{
+						SummaryLimit: 0,
+					},
+				},
+			},
+			expected: defaultDashboardSummaryLimit,
+		},
+		{
+			name: "skips layout element with nil summary config",
+			settings: Settings{
+				Realtime: RealtimeSettings{
+					Dashboard: Dashboard{
+						SummaryLimit: 0,
+						Layout: DashboardLayout{
+							Elements: []DashboardElement{
+								{Type: "daily-summary", Summary: nil},
+							},
+						},
+					},
+				},
+			},
+			expected: defaultDashboardSummaryLimit,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, tt.settings.GetEffectiveSummaryLimit())
+		})
+	}
 }

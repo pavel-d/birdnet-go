@@ -5,6 +5,8 @@
   import { loggers } from '$lib/utils/logger';
   import { fetchWithCSRF } from '$lib/utils/api';
   import { buildAppUrl } from '$lib/utils/urlHelpers';
+  import { generateSessionId } from '$lib/utils/session';
+  import { hasLiveAudioAccess } from '$lib/stores/appState.svelte';
   import Hls from 'hls.js';
   import type { ErrorData } from 'hls.js';
   import { HLS_AUDIO_CONFIG, BUFFERING_STRATEGY, ERROR_HANDLING } from './hls-config';
@@ -23,15 +25,14 @@
 
   interface Props {
     className?: string;
-    securityEnabled?: boolean;
-    accessAllowed?: boolean;
   }
 
-  // PERFORMANCE OPTIMIZATION: Cache HLS availability check with $derived
-  // Now using imported Hls instead of global window.Hls
-  let hlsSupported = $derived(typeof window !== 'undefined' && Hls.isSupported());
+  const hlsSupported = typeof window !== 'undefined' && Hls.isSupported();
 
-  let { className = '', securityEnabled = false, accessAllowed = true }: Props = $props();
+  let { className = '' }: Props = $props();
+
+  // Stream token state
+  let activeStreamToken: string | null = null;
 
   // State
   let levels = $state<AudioLevels>({});
@@ -48,17 +49,17 @@
   const ZERO_LEVEL_TIMEOUT = 5000;
   const HEARTBEAT_INTERVAL = 20000;
 
+  const sessionId = generateSessionId();
+
   // Internal state
   let eventSource: ReconnectingEventSource | null = null;
-  let audioElement: HTMLAudioElement | null = null;
   let hlsInstance: Hls | null = null;
   let zeroLevelTime: { [key: string]: number } = {};
   let heartbeatTimer: ReturnType<typeof globalThis.setInterval> | null = null;
+  let startRequestId = 0;
   let dropdownRef = $state<HTMLDivElement>();
   let buttonRef = $state<HTMLButtonElement>();
 
-  // PERFORMANCE OPTIMIZATION: Cache computed values with $derived
-  // Reduces repeated object property access and boolean logic in templates
   const isClipping = $derived(
     // eslint-disable-next-line security/detect-object-injection
     selectedSource && levels[selectedSource] ? levels[selectedSource].clipping : false
@@ -67,8 +68,10 @@
   // eslint-disable-next-line security/detect-object-injection
   const smoothedVolume = $derived(selectedSource ? smoothedVolumes[selectedSource] || 0 : 0);
 
-  // PERFORMANCE OPTIMIZATION: Cache audio element creation with $derived.by
-  // Prevents repeated DOM element creation and event listener setup
+  // NOTE: $derived.by with side effects is an anti-pattern (derived should be pure).
+  // This creates the audio element lazily on first access and caches it.
+  // The event listeners inside modify $state (isPlaying) — acceptable here because
+  // the guard (!audioElementRef) ensures the side effect runs exactly once.
   let audioElementRef: HTMLAudioElement | null = null;
   let cachedAudioElement = $derived.by(() => {
     if (!audioElementRef && typeof window !== 'undefined') {
@@ -247,11 +250,11 @@
       });
 
       navigator.mediaSession.setActionHandler('play', () => {
-        audioElement?.play();
+        getAudioElement()?.play();
       });
 
       navigator.mediaSession.setActionHandler('pause', () => {
-        audioElement?.pause();
+        getAudioElement()?.pause();
       });
 
       navigator.mediaSession.playbackState = 'playing';
@@ -263,12 +266,12 @@
     stopHeartbeat();
 
     const sendHeartbeat = async () => {
-      if (!isPlaying || !playingSource) return;
+      if (!isPlaying || !activeStreamToken) return;
 
       try {
         await fetchWithCSRF('/api/v2/streams/hls/heartbeat', {
           method: 'POST',
-          body: { source_id: playingSource },
+          body: { stream_token: activeStreamToken, session_id: sessionId },
         });
       } catch {
         // Failed to send heartbeat - ignore
@@ -286,11 +289,12 @@
       heartbeatTimer = null;
     }
 
-    // Send disconnect notification
-    if (playingSource) {
+    // Send disconnect notification (keepalive ensures delivery during page unload)
+    if (activeStreamToken) {
       fetchWithCSRF('/api/v2/streams/hls/heartbeat?disconnect=true', {
         method: 'POST',
-        body: { source_id: playingSource },
+        keepalive: true,
+        body: { stream_token: activeStreamToken, session_id: sessionId },
       }).catch(() => {
         // Ignore errors during disconnect
       });
@@ -298,7 +302,7 @@
   }
 
   // Setup HLS streaming
-  async function setupHLSStream(hlsUrl: string, _sourceId: string) {
+  async function setupHLSStream(hlsUrl: string) {
     const audio = getAudioElement();
     if (!audio) return;
 
@@ -415,6 +419,7 @@
     // Starting audio playback for source
     stopPlayback();
 
+    const requestId = ++startRequestId;
     playingSource = sourceId;
     showStatusMessage('Starting audio stream...');
 
@@ -422,15 +427,31 @@
 
     try {
       // Use fetchWithCSRF for authenticated HLS endpoint
-      await fetchWithCSRF(`/api/v2/streams/hls/${encodedSourceId}/start`, {
+      const data = await fetchWithCSRF<{
+        status: string;
+        stream_token: string;
+        playlist_url: string;
+        playlist_ready: boolean;
+      }>(`/api/v2/streams/hls/${encodedSourceId}/start`, {
         method: 'POST',
+        body: { session_id: sessionId },
       });
 
-      const hlsUrl = `/api/v2/streams/hls/${encodedSourceId}/playlist.m3u8`;
-      await setupHLSStream(hlsUrl, sourceId);
+      // Discard stale response if user switched sources during fetch
+      if (requestId !== startRequestId) return;
+
+      activeStreamToken = data.stream_token;
+      const hlsUrl = buildAppUrl(data.playlist_url);
+      await setupHLSStream(hlsUrl);
+
+      // Re-check after second await
+      if (requestId !== startRequestId) return;
 
       startHeartbeat();
     } catch (error) {
+      // Only show error if this is still the active request
+      if (requestId !== startRequestId) return;
+
       // Handle audio stream access error
       const message =
         error instanceof Error && error.message.includes('permission')
@@ -447,10 +468,11 @@
     hideStatusMessage();
     stopHeartbeat();
 
-    if (audioElement) {
-      audioElement.pause();
-      audioElement.src = '';
-      audioElement.load();
+    const el = getAudioElement();
+    if (el) {
+      el.pause();
+      el.src = '';
+      el.load();
     }
 
     if (hlsInstance) {
@@ -461,6 +483,7 @@
     const previousSource = playingSource;
     isPlaying = false;
     playingSource = null;
+    activeStreamToken = null;
 
     if ('mediaSession' in navigator) {
       navigator.mediaSession.playbackState = 'paused';
@@ -471,9 +494,9 @@
       const encodedSourceId = encodeURIComponent(previousSource);
       fetchWithCSRF(`/api/v2/streams/hls/${encodedSourceId}/stop`, {
         method: 'POST',
-      }).catch(_err => {
-        // Failed to notify server of playback stop
-      });
+        keepalive: true,
+        body: { session_id: sessionId },
+      }).catch(() => {});
     }
   }
 
@@ -499,8 +522,11 @@
     }
   }
 
-  // PERFORMANCE OPTIMIZATION: Use Svelte 5 $effect instead of legacy onMount
-  // $effect provides better reactivity and automatic cleanup management
+  // IMPORTANT: This must remain $effect (not onMount) because setupEventSource()
+  // is also called from the visibility change handler and needs cleanup coordination.
+  // However, be careful: any $state read inside this effect body becomes a reactive
+  // dependency. Do NOT read appState or other reactive stores here without untrack()
+  // to avoid effect_update_depth_exceeded loops during startup.
   $effect(() => {
     if (typeof window !== 'undefined') {
       setupEventSource();
@@ -530,8 +556,6 @@
       window.addEventListener('unload', handleUnload);
 
       return () => {
-        // PERFORMANCE OPTIMIZATION: Automatic cleanup with Svelte 5 $effect
-        // Eliminates need for separate onDestroy lifecycle
         document.removeEventListener('click', handleClickOutside);
         document.removeEventListener('visibilitychange', handleVisibilityChange);
         window.removeEventListener('beforeunload', handleUnload);
@@ -607,7 +631,7 @@
     </div>
   {/if}
 
-  {#if !securityEnabled || accessAllowed}
+  {#if hasLiveAudioAccess()}
     <!-- Dropdown menu -->
     {#if dropdownOpen}
       <div

@@ -46,6 +46,7 @@ Performance Optimizations:
   import type { AuthConfig } from '../../../app.d';
   import {
     LayoutDashboard,
+    Radio,
     BarChart3,
     Search,
     Info,
@@ -72,6 +73,7 @@ Performance Optimizations:
     Paintbrush,
   } from '@lucide/svelte';
   import { t } from '$lib/i18n';
+  import { hasLiveAudioAccess } from '$lib/stores/appState.svelte';
   import { resetDateToToday } from '$lib/utils/datePersistence';
   import LoginModal from '../components/modals/LoginModal.svelte';
   import LogoBadge from '$lib/components/LogoBadge.svelte';
@@ -203,6 +205,7 @@ Performance Optimizations:
   // PERFORMANCE OPTIMIZATION: Cache route calculations with $derived.by
   let routeCache = $derived.by(() => ({
     dashboard: actualRoute === '/ui/dashboard' || actualRoute === '/ui/',
+    liveStream: actualRoute.startsWith('/ui/live-stream'),
     analytics: actualRoute.startsWith('/ui/analytics'),
     analyticsExact: actualRoute === '/ui/analytics',
     analyticsAdvanced: actualRoute === '/ui/analytics/advanced',
@@ -247,6 +250,7 @@ Performance Optimizations:
   // PERFORMANCE OPTIMIZATION: Cache navigation URL transformations
   let navigationUrls = $derived({
     dashboard: onNavigate ? '/' : '/ui/dashboard',
+    liveStream: onNavigate ? '/live-stream' : '/ui/live-stream',
     analytics: onNavigate ? '/analytics' : '/ui/analytics',
     analyticsAdvanced: '/ui/analytics/advanced',
     analyticsSpecies: onNavigate ? '/analytics/species' : '/ui/analytics/species',
@@ -401,6 +405,30 @@ Performance Optimizations:
             {/if}
           </button>
         </div>
+
+        <!-- Live Stream -->
+        {#if hasLiveAudioAccess()}
+          <div class="relative">
+            <button
+              onclick={() => navigate(navigationUrls.liveStream)}
+              onmouseenter={e => isCollapsed && showTooltip(e, t('spectrogram.page.title'))}
+              onmouseleave={hideTooltip}
+              aria-label={t('spectrogram.page.title')}
+              class={cn(
+                menuItemBase,
+                menuItemCollapsed,
+                routeCache.liveStream ? menuItemActive : menuItemDefault
+              )}
+              aria-current={routeCache.liveStream ? 'page' : undefined}
+              role="menuitem"
+            >
+              <Radio class="size-5 shrink-0" />
+              {#if !isCollapsed}
+                <span>{t('spectrogram.page.title')}</span>
+              {/if}
+            </button>
+          </div>
+        {/if}
 
         <!-- Analytics (Collapsible) -->
         <div class="flex flex-col relative flyout-container">

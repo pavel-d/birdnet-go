@@ -86,6 +86,24 @@ jobs:
             sleep 1
           done
 
+      # --- Ensure Docker is available ---
+      - name: Wait for Docker daemon
+        run: |
+          echo "Waiting for Docker daemon to be ready..."
+          for i in $(seq 1 30); do
+            if docker info > /dev/null 2>&1; then
+              echo "Docker is ready (attempt $i)"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "Docker failed to become available after 30 attempts"
+              docker info || true
+              exit 1
+            fi
+            echo "Docker not ready yet (attempt $i/30), waiting..."
+            sleep 2
+          done
+
       # --- Pull nginx image ---
       - name: Pull nginx image
         run: docker pull nginx:1.27-alpine

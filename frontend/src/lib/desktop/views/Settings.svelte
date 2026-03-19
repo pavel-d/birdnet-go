@@ -58,7 +58,7 @@
   <title>{t('pageTitle.settings')}</title>
 </svelte:head>
 
-<main class="col-span-12 container mx-auto">
+<main class="col-span-12 w-full">
   <!-- Restart Required Banner -->
   {#if store.restartRequired}
     <div
@@ -107,7 +107,7 @@
       {:else if currentSection === 'support'}
         <SupportSettingsSection />
       {:else}
-        <div class="card bg-[var(--color-base-100)] shadow-xs p-6">
+        <div class="rounded-lg bg-[var(--color-base-100)] shadow-sm p-6">
           <div class="text-center py-12 text-[var(--color-base-content)] opacity-70">
             <h2 class="text-xl font-semibold mb-2">{t('common.ui.settingsNotFound')}</h2>
             <p>{t('common.ui.sectionNotFound', { section: currentSection })}</p>

@@ -111,7 +111,7 @@
     <QuietHoursIndicator />
 
     {#if showAudioLevel}
-      <AudioLevelIndicator {securityEnabled} {accessAllowed} />
+      <AudioLevelIndicator />
     {/if}
 
     {#if showNotifications}

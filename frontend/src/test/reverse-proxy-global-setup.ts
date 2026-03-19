@@ -142,10 +142,24 @@ export async function setup(): Promise<void> {
   const nginxConfigDir = resolve(currentDir, 'nginx');
 
   // Check if Docker is available (before allocating temp resources)
-  try {
-    execSync('docker info', { stdio: 'ignore', timeout: 5000 });
-  } catch {
-    throw new Error('Docker is not available. Reverse proxy tests require Docker.');
+  // Retry several times as the Docker daemon may still be starting up (common in CI)
+  let dockerReady = false;
+  for (let attempt = 1; attempt <= 10; attempt++) {
+    try {
+      execSync('docker info', { stdio: 'ignore', timeout: 10000 });
+      dockerReady = true;
+      break;
+    } catch {
+      if (attempt < 10) {
+        console.log(`  Docker not ready (attempt ${attempt}/10), retrying in 3s...`);
+        await new Promise(r => setTimeout(r, 3000));
+      }
+    }
+  }
+  if (!dockerReady) {
+    throw new Error(
+      'Docker is not available after 10 attempts. Reverse proxy tests require Docker.'
+    );
   }
 
   // Create temp dir for templated configs

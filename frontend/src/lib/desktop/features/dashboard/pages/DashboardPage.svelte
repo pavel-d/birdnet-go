@@ -64,11 +64,13 @@ Performance Optimizations:
   import { api } from '$lib/utils/api';
   import { buildAppUrl } from '$lib/utils/urlHelpers';
   import { navigation } from '$lib/stores/navigation.svelte';
+  import { appState } from '$lib/stores/appState.svelte';
   import { birdnetSettings, dashboardLayout, settingsStore } from '$lib/stores/settings';
   import type { Dashboard, DashboardElement, DashboardLayout } from '$lib/stores/settings';
   import { dashboardEditMode } from '$lib/stores/dashboardEditMode';
   import BannerCard from '$lib/desktop/features/dashboard/components/BannerCard.svelte';
   import VideoEmbedCard from '$lib/desktop/features/dashboard/components/VideoEmbedCard.svelte';
+  import MiniSpectrogram from '$lib/desktop/features/dashboard/components/MiniSpectrogram.svelte';
   import DashboardEditMode from '$lib/desktop/features/dashboard/components/DashboardEditMode.svelte';
   import DailySummaryConfigForm from '$lib/desktop/features/dashboard/components/DailySummaryConfigForm.svelte';
   import {
@@ -150,9 +152,15 @@ Performance Optimizations:
   const defaultElements: DashboardElement[] = [
     { id: 'daily-summary-0', type: 'daily-summary', enabled: true, summary: { summaryLimit: 30 } },
     { id: 'currently-hearing-0', type: 'currently-hearing', enabled: true },
+    { id: 'live-spectrogram-0', type: 'live-spectrogram', enabled: true },
     { id: 'detections-grid-0', type: 'detections-grid', enabled: true },
   ];
-  let layoutElements = $derived($dashboardLayout?.elements ?? defaultElements);
+  // Priority: authenticated settings > public app config > hardcoded defaults
+  let layoutElements = $derived(
+    $dashboardLayout?.elements ??
+      (appState.layout?.elements as DashboardElement[] | undefined) ??
+      defaultElements
+  );
 
   // Current layout as a DashboardLayout object for DashboardEditMode
   let currentLayout = $derived<DashboardLayout>({ elements: layoutElements });
@@ -1483,6 +1491,10 @@ Performance Optimizations:
         />
       {:else if element.type === 'currently-hearing'}
         <CurrentlyHearingCard detections={isViewingToday ? pendingDetections : []} />
+      {:else if element.type === 'live-spectrogram'}
+        {#if isViewingToday}
+          <MiniSpectrogram />
+        {/if}
       {:else if element.type === 'detections-grid'}
         <DetectionCardGrid
           data={recentDetections}

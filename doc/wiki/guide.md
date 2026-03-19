@@ -8,8 +8,7 @@ BirdNET-Go is an application inspired by BirdNET-Pi and BirdNET Analyzer. It aim
 - 24/7 real-time analysis of soundcard capture
 - Real-time analysis output compatible with OBS chat log input for wildlife streams
 - BirdWeather API support for real-time analysis
-- File analysis of WAV files
-- Analysis output options: Raven table, CSV file, SQLite, or MySQL database
+- Analysis output options: SQLite or MySQL database
 - Localized species labels, with extensive language support (over 30 languages)
 - Runs on Windows, Linux (including Raspberry Pi), and macOS
 - Minimal runtime dependencies; the BirdNET TensorFlow Lite model and other supporting files are embedded in the executable
@@ -424,8 +423,6 @@ birdnet [command] [flags]
 **Available Commands:**
 
 - `realtime`: (Default) Starts the real-time analysis using the configuration file.
-- `file`: Analyzes a single audio file. Requires `-i <filepath>`.
-- `directory`: Analyzes all audio files in a directory. Requires `-i <dirpath>`. Can optionally use `--recursive` and `--watch`.
 - `benchmark`: Runs a performance benchmark on the current system.
 - `range`: Manages the range filter database (used for location-based species filtering).
   - `range update`: Downloads or updates the range filter database.

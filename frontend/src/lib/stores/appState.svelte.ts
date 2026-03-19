@@ -54,12 +54,31 @@ interface AppConfigResponse {
       basicEnabled: boolean;
       enabledProviders: string[];
     };
+    publicAccess?: {
+      liveAudio: boolean;
+    };
   };
   version: string;
+  freshInstall?: boolean;
+  newVersion?: boolean;
+  previousVersion?: string;
   basePath?: string;
   colorScheme?: string;
   customColors?: { primary: string; accent: string };
   logoStyle?: string;
+  liveSpectrogram?: boolean;
+  layout?: {
+    elements: {
+      id?: string;
+      type: string;
+      enabled: boolean;
+      width?: string;
+      banner?: Record<string, unknown>;
+      video?: Record<string, unknown>;
+      summary?: Record<string, unknown>;
+      grid?: Record<string, unknown>;
+    }[];
+  };
 }
 
 /**
@@ -78,11 +97,24 @@ interface AppState {
   csrfToken: string;
   /** Application version string */
   version: string;
+  /** Whether this is a fresh install (no prior data) */
+  freshInstall: boolean;
+  /** Whether the app was updated to a new version */
+  newVersion: boolean;
+  /** Previous version before the update */
+  previousVersion: string | null;
+  /** Whether live spectrogram is enabled */
+  liveSpectrogram: boolean;
+  /** Dashboard layout from public config (available before auth) */
+  layout: AppConfigResponse['layout'] | null;
   /** Security configuration */
   security: {
     enabled: boolean;
     accessAllowed: boolean;
     authConfig: AuthConfig;
+    publicAccess: {
+      liveAudio: boolean;
+    };
   };
 }
 
@@ -96,12 +128,20 @@ const DEFAULT_STATE: AppState = {
   retryCount: 0,
   csrfToken: '',
   version: 'Development Build',
+  freshInstall: false,
+  newVersion: false,
+  previousVersion: null,
+  liveSpectrogram: false,
+  layout: null,
   security: {
     enabled: false,
     accessAllowed: true,
     authConfig: {
       basicEnabled: false,
       enabledProviders: [],
+    },
+    publicAccess: {
+      liveAudio: false,
     },
   },
 };
@@ -111,6 +151,19 @@ const DEFAULT_STATE: AppState = {
  * This is a reactive object that can be imported and used directly in components.
  */
 export const appState: AppState = $state({ ...DEFAULT_STATE });
+
+/**
+ * Whether the current user has access to live audio features.
+ * Centralized check: security disabled, user authenticated, or public live audio enabled.
+ * Exported as a function because Svelte 5 does not allow exporting $derived from modules.
+ */
+export function hasLiveAudioAccess(): boolean {
+  return (
+    !appState.security.enabled ||
+    appState.security.accessAllowed ||
+    appState.security.publicAccess.liveAudio
+  );
+}
 
 /**
  * Delays execution for the specified number of milliseconds.
@@ -188,7 +241,16 @@ export async function initApp(): Promise<boolean> {
           basicEnabled: config.security.authConfig.basicEnabled,
           enabledProviders: config.security.authConfig.enabledProviders,
         },
+        publicAccess: {
+          liveAudio: config.security.publicAccess?.liveAudio ?? false,
+        },
       };
+
+      appState.freshInstall = config.freshInstall ?? false;
+      appState.newVersion = config.newVersion ?? false;
+      appState.previousVersion = config.previousVersion ?? null;
+      appState.liveSpectrogram = config.liveSpectrogram ?? false;
+      appState.layout = config.layout ?? null;
 
       // Apply server-configured appearance settings
       if (config.colorScheme) {

@@ -24,6 +24,13 @@ var taxonomySynonyms = map[string]string{
 	// Corvus → Coloeus reclassification
 	"Corvus monedula":  "Coloeus monedula",
 	"Corvus dauuricus": "Coloeus dauuricus",
+
+	// Streptopelia → Spilopelia reclassification
+	"Streptopelia senegalensis": "Spilopelia senegalensis",
+	"Streptopelia chinensis": "Spilopelia chinensis",
+
+	// Bubulcus → Ardea reclassification
+	"Bubulcus ibis": "Ardea coromanda",
 }
 
 // forwardSynonyms maps lowercase BirdNET names to updated names.

@@ -137,7 +137,7 @@ describe('AudioPlayer', () => {
       showSpectrogram: true,
     });
 
-    const img = screen.getByAltText('Audio spectrogram');
+    const img = screen.getByAltText('components.audio.spectrogramAlt');
     expect(img).toBeInTheDocument();
     // URL includes cache-busting parameter
     expect(img.getAttribute('src')).toMatch(/\/api\/v2\/spectrogram\/test-123\?size=md&cache=\d+/);
@@ -151,7 +151,7 @@ describe('AudioPlayer', () => {
       showSpectrogram: true,
     });
 
-    const img = screen.getByAltText('Audio spectrogram');
+    const img = screen.getByAltText('components.audio.spectrogramAlt');
     // URL includes cache-busting parameter
     expect(img.getAttribute('src')).toMatch(/\/api\/v2\/spectrogram\/123\?size=md&cache=\d+/);
   });
@@ -329,13 +329,13 @@ describe('AudioPlayer', () => {
 
     // Wait for the spectrogram to load
     await waitFor(() => {
-      const img = screen.getByAltText('Audio spectrogram');
+      const img = screen.getByAltText('components.audio.spectrogramAlt');
       expect(img).toBeInTheDocument();
     });
 
     // Since the component doesn't currently support clicking on spectrogram for seeking,
     // we'll test that the spectrogram is displayed correctly
-    const img = screen.getByAltText('Audio spectrogram');
+    const img = screen.getByAltText('components.audio.spectrogramAlt');
     // URL includes cache-busting parameter
     expect(img.getAttribute('src')).toMatch(/\/api\/v2\/spectrogram\/test-123\?size=md&cache=\d+/);
   });
@@ -400,7 +400,7 @@ describe('AudioPlayer', () => {
       showSpectrogram: false,
     });
 
-    expect(screen.queryByAltText('Audio spectrogram')).not.toBeInTheDocument();
+    expect(screen.queryByAltText('components.audio.spectrogramAlt')).not.toBeInTheDocument();
   });
 
   it('calls event callbacks', async () => {
@@ -471,7 +471,7 @@ describe('AudioPlayer', () => {
     });
 
     // Get the spectrogram image
-    const img = screen.getByAltText('Audio spectrogram');
+    const img = screen.getByAltText('components.audio.spectrogramAlt');
     expect(img).toBeInTheDocument();
 
     // Trigger error and advance through all retry attempts

@@ -30,21 +30,19 @@
   import StatusBadges from '$lib/desktop/components/data/StatusBadges.svelte';
   import WeatherMetrics from '$lib/desktop/components/data/WeatherMetrics.svelte';
   import { Volume2 } from '@lucide/svelte';
-  import AudioPlayer from '$lib/desktop/components/media/AudioPlayer.svelte';
+  import SpectrogramPlayer from '$lib/desktop/components/media/SpectrogramPlayer.svelte';
   import ConfirmModal from '$lib/desktop/components/modals/ConfirmModal.svelte';
   import ActionMenu from '$lib/desktop/components/ui/ActionMenu.svelte';
   import { handleBirdImageError } from '$lib/desktop/components/ui/image-utils.js';
   import { t } from '$lib/i18n';
   import type { Detection } from '$lib/types/detection.types';
+  import { toastActions } from '$lib/stores/toast';
   import { fetchWithCSRF } from '$lib/utils/api';
   import { useImageDelayedLoading } from '$lib/utils/delayedLoading.svelte.js';
   import { loggers } from '$lib/utils/logger';
   import { navigation } from '$lib/stores/navigation.svelte';
-  import { isAuthenticated } from '$lib/utils/auth';
 
   const logger = loggers.ui;
-
-  let clipExtractionEnabled = $derived($isAuthenticated);
 
   interface Props {
     detection: Detection;
@@ -105,12 +103,16 @@
   function handleToggleSpecies() {
     confirmModalConfig = {
       title: isExcluded
-        ? `Show Species ${detection.commonName}`
-        : `Ignore Species ${detection.commonName}`,
+        ? t('dashboard.recentDetections.modals.showSpecies', { species: detection.commonName })
+        : t('dashboard.recentDetections.modals.ignoreSpecies', { species: detection.commonName }),
       message: isExcluded
-        ? `Are you sure you want to show future detections of ${detection.commonName}?`
-        : `Are you sure you want to ignore future detections of ${detection.commonName}? This will only affect new detections - existing detections will remain in the database.`,
-      confirmLabel: 'Confirm',
+        ? t('dashboard.recentDetections.modals.showSpeciesConfirm', {
+            species: detection.commonName,
+          })
+        : t('dashboard.recentDetections.modals.ignoreSpeciesConfirm', {
+            species: detection.commonName,
+          }),
+      confirmLabel: t('common.confirm'),
       onConfirm: async () => {
         try {
           await fetchWithCSRF('/api/v2/detections/ignore', {
@@ -124,6 +126,7 @@
           });
           onRefresh?.();
         } catch (error) {
+          toastActions.error(t('dashboard.recentDetections.errors.toggleSpeciesFailed'));
           logger.error('Error toggling species exclusion:', error);
         }
       },
@@ -133,11 +136,17 @@
 
   function handleToggleLock() {
     confirmModalConfig = {
-      title: detection.locked ? 'Unlock Detection' : 'Lock Detection',
+      title: detection.locked
+        ? t('dashboard.recentDetections.modals.unlockDetection')
+        : t('dashboard.recentDetections.modals.lockDetection'),
       message: detection.locked
-        ? `Are you sure you want to unlock this detection of ${detection.commonName}? This will allow it to be deleted during regular cleanup.`
-        : `Are you sure you want to lock this detection of ${detection.commonName}? This will prevent it from being deleted during regular cleanup.`,
-      confirmLabel: 'Confirm',
+        ? t('dashboard.recentDetections.modals.unlockDetectionConfirm', {
+            species: detection.commonName,
+          })
+        : t('dashboard.recentDetections.modals.lockDetectionConfirm', {
+            species: detection.commonName,
+          }),
+      confirmLabel: t('common.confirm'),
       onConfirm: async () => {
         try {
           await fetchWithCSRF(`/api/v2/detections/${detection.id}/lock`, {
@@ -151,6 +160,7 @@
           });
           onRefresh?.();
         } catch (error) {
+          toastActions.error(t('dashboard.recentDetections.errors.toggleLockFailed'));
           logger.error('Error toggling lock status:', error);
         }
       },
@@ -160,9 +170,13 @@
 
   function handleDelete() {
     confirmModalConfig = {
-      title: `Delete Detection of ${detection.commonName}`,
-      message: `Are you sure you want to delete detection of ${detection.commonName}? This action cannot be undone.`,
-      confirmLabel: 'Delete',
+      title: t('dashboard.recentDetections.modals.deleteDetection', {
+        species: detection.commonName,
+      }),
+      message: t('dashboard.recentDetections.modals.deleteDetectionConfirm', {
+        species: detection.commonName,
+      }),
+      confirmLabel: t('common.delete'),
       onConfirm: async () => {
         try {
           await fetchWithCSRF(`/api/v2/detections/${detection.id}`, {
@@ -170,6 +184,7 @@
           });
           onRefresh?.();
         } catch (error) {
+          toastActions.error(t('dashboard.recentDetections.errors.deleteFailed'));
           logger.error('Error deleting detection:', error);
         }
       },
@@ -346,20 +361,11 @@
 
 <!-- Recording/Spectrogram -->
 <td class="hidden md:table-cell">
-  <div class="dr-audio-player-container">
-    <AudioPlayer
-      audioUrl={`/api/v2/audio/${detection.id}`}
-      detectionId={detection.id.toString()}
-      showSpectrogram={true}
-      showDownload={true}
-      spectrogramSize="md"
-      spectrogramRaw={true}
-      responsive={true}
-      className="w-full"
-      enableClipExtraction={clipExtractionEnabled}
-      clipLabel={`${detection.commonName}_${detection.date}_${detection.time.replace(/:/g, '-')}`}
-    />
-  </div>
+  <SpectrogramPlayer
+    audioUrl={`/api/v2/audio/${detection.id}`}
+    detectionId={detection.id.toString()}
+    spectrogramSize="md"
+  />
 </td>
 
 <!-- Action Menu -->
@@ -414,50 +420,5 @@
     width: 100%;
     height: 100%;
     object-fit: contain;
-  }
-
-  /* DR Audio Player Container - 2:1 aspect ratio matching spectrogram dimensions */
-  .dr-audio-player-container {
-    position: relative;
-    width: 100%;
-    max-width: 200px; /* Constrain maximum width in table */
-    min-height: var(--spectrogram-min-height, 60px); /* Fallback to 60px if var not defined */
-    aspect-ratio: var(--spectrogram-aspect-ratio, 2 / 1); /* Fallback to 2:1 if var not defined */
-    background: linear-gradient(to bottom, rgb(128 128 128 / 0.1), rgb(128 128 128 / 0.05));
-    border-radius: 0.5rem;
-    overflow: hidden; /* Contain the AudioPlayer content */
-  }
-
-  /* Ensure AudioPlayer fills container - using more specific selectors to avoid !important */
-  .dr-audio-player-container :global(.group) {
-    width: 100%;
-    height: 100%;
-    position: absolute;
-    top: 0;
-    left: 0;
-  }
-
-  /* Override any conflicting styles with higher specificity */
-  .dr-audio-player-container > :global(div > .group) {
-    width: 100%;
-    height: 100%;
-    position: absolute;
-    top: 0;
-    left: 0;
-  }
-
-  /* Responsive spectrogram sizing */
-  .dr-audio-player-container :global(img) {
-    object-fit: cover;
-    height: 100%;
-    width: 100%;
-  }
-
-  /* Higher specificity for image styles if needed */
-  .dr-audio-player-container :global(.group img),
-  .dr-audio-player-container :global(div img) {
-    object-fit: cover;
-    height: 100%;
-    width: 100%;
   }
 </style>

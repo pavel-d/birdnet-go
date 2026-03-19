@@ -266,14 +266,18 @@ Lightweight connectivity check. Returns a minimal response with no database quer
 
 ### HLS Streaming (`audio_hls.go`)
 
-| Method | Route                                  | Handler            | Auth | Description                   |
-| ------ | -------------------------------------- | ------------------ | ---- | ----------------------------- |
-| POST   | `/streams/hls/:sourceID/start`         | `StartHLSStream`   | ✅   | Start HLS stream for source   |
-| POST   | `/streams/hls/:sourceID/stop`          | `StopHLSStream`    | ✅   | Stop HLS stream               |
-| POST   | `/streams/hls/heartbeat`               | `HLSHeartbeat`     | ❌   | Keep HLS stream alive         |
-| GET    | `/streams/hls/status`                  | `GetHLSStatus`     | ❌   | Get status of all HLS streams |
-| GET    | `/streams/hls/:sourceID/playlist.m3u8` | `ServeHLSPlaylist` | ❌   | Get HLS playlist              |
-| GET    | `/streams/hls/:sourceID/*`             | `ServeHLSContent`  | ❌   | Serve HLS segments and init   |
+| Method | Route                                            | Handler            | Auth                 | Description                    |
+| ------ | ------------------------------------------------ | ------------------ | -------------------- | ------------------------------ |
+| POST   | `/streams/hls/:sourceID/start`                   | `StartHLSStream`   | ✅                   | Start HLS stream for source    |
+| POST   | `/streams/hls/:sourceID/stop`                    | `StopHLSStream`    | ✅                   | Stop HLS stream                |
+| POST   | `/streams/hls/heartbeat`                         | `HLSHeartbeat`     | ✅ publicLiveAudio   | Keep HLS stream alive          |
+| GET    | `/streams/hls/status`                            | `GetHLSStatus`     | ✅ publicLiveAudio   | Get status of all HLS streams  |
+| GET    | `/streams/hls/t/:streamToken/playlist.m3u8`      | `ServeHLSPlaylist` | 🔑 token             | Get HLS playlist via token     |
+| GET    | `/streams/hls/t/:streamToken/*`                  | `ServeHLSContent`  | 🔑 token             | Serve HLS segments via token   |
+
+**Token-Based Authentication:**
+
+HLS playlist and segment routes use token-based authentication instead of standard auth middleware. The `stream_token` is returned when starting a stream and acts as the sole credential for accessing HLS content. This avoids cookie/header auth issues with native `<audio>`/`<video>` elements and HLS players that cannot attach custom headers to sub-resource requests.
 
 **Start HLS Stream:**
 
@@ -286,7 +290,8 @@ Lightweight connectivity check. Returns a minimal response with no database quer
 {
   "status": "ready",
   "source": "rtsp%3A%2F%2Fcamera.local%3A554%2Fstream",
-  "playlist_url": "/api/v2/streams/hls/rtsp%3A%2F%2Fcamera.local%3A554%2Fstream/playlist.m3u8",
+  "stream_token": "<stream_token>",
+  "playlist_url": "/api/v2/streams/hls/t/<stream_token>/playlist.m3u8",
   "active_clients": 1,
   "playlist_ready": true
 }
@@ -296,7 +301,7 @@ Lightweight connectivity check. Returns a minimal response with no database quer
 
 ```json
 {
-  "source_id": "rtsp://camera.local:554/stream",
+  "stream_token": "<stream_token>",
   "client_id": "optional-client-id"
 }
 ```
@@ -309,7 +314,7 @@ Lightweight connectivity check. Returns a minimal response with no database quer
     {
       "status": "active",
       "source": "rtsp%3A%2F%2Fcamera.local%3A554%2Fstream",
-      "playlist_url": "/api/v2/streams/hls/...",
+      "playlist_url": "/api/v2/streams/hls/t/.../playlist.m3u8",
       "active_clients": 2,
       "playlist_ready": true
     }
@@ -321,6 +326,7 @@ Lightweight connectivity check. Returns a minimal response with no database quer
 **Features:**
 
 - FFmpeg-based HLS streaming with AAC audio encoding
+- Token-based auth for HLS content (no auth middleware on playlist/segment routes)
 - Automatic stream cleanup after 5 minutes of inactivity
 - Stream reuse: existing healthy streams are reused for new clients
 - Client tracking with heartbeat-based keep-alive
@@ -489,6 +495,8 @@ Requires enhanced (v2) database. Returns 409 Conflict if not available.
 ## Legend
 
 - ✅ = Authentication required
+- ✅ publicLiveAudio = Authentication required unless `PublicAccess.LiveAudio` is enabled (dynamic per-request check)
+- 🔑 token = Token-based access — the crypto-random `stream_token` returned by `/start` acts as the credential
 - ❌ = No authentication required
 - ⚡ = Rate limited
 - 🔒 = Admin only (subset of authenticated)

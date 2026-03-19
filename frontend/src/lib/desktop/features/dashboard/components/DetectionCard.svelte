@@ -27,9 +27,12 @@
   import DetectionPreviewMedia from '$lib/desktop/components/media/DetectionPreviewMedia.svelte';
   import { cn } from '$lib/utils/cn';
   import { DEFAULT_PLAYBACK_SPEED } from '$lib/utils/audio';
+  import { get } from 'svelte/store';
+  import { dashboardSettings } from '$lib/stores/settings';
 
-  // Configuration constants
-  const DEFAULT_AUDIO_GAIN = 0;
+  // Configuration constants — use helper to read current default gain at call time
+  // (cards are recycled via keyed {#each}, so a one-time const would go stale)
+  const getDefaultAudioGain = () => get(dashboardSettings)?.defaultAudioGain ?? 0;
   const DEFAULT_AUDIO_FILTER_FREQ = 20;
   const DEFAULT_DOWNLOAD_NAME = 'detection';
   const AUDIO_FILE_EXTENSION = '.wav';
@@ -66,7 +69,7 @@
   let isAudioSettingsOpen = $state(false);
 
   // Audio settings state (per-card, not shared)
-  let audioGainValue = $state(DEFAULT_AUDIO_GAIN);
+  let audioGainValue = $state(getDefaultAudioGain());
   let audioFilterFreq = $state(DEFAULT_AUDIO_FILTER_FREQ);
   let audioPlaybackSpeed = $state(DEFAULT_PLAYBACK_SPEED);
   let audioContextAvailable = $state(true);
@@ -102,7 +105,7 @@
   $effect(() => {
     const currentId = detection.id;
     if (previousDetectionId !== undefined && previousDetectionId !== currentId) {
-      audioGainValue = DEFAULT_AUDIO_GAIN;
+      audioGainValue = getDefaultAudioGain();
       audioFilterFreq = DEFAULT_AUDIO_FILTER_FREQ;
       audioPlaybackSpeed = DEFAULT_PLAYBACK_SPEED;
       audioContextAvailable = true;
@@ -223,6 +226,7 @@
       gainValue={audioGainValue}
       filterFreq={audioFilterFreq}
       playbackSpeed={audioPlaybackSpeed}
+      defaultGainValue={getDefaultAudioGain()}
       onGainChange={handleGainChange}
       onFilterChange={handleFilterChange}
       onSpeedChange={handleSpeedChange}

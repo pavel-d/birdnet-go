@@ -15,6 +15,10 @@
   import type { DashboardElementType } from '$lib/stores/settings';
   import DashboardElementWrapper from './DashboardElementWrapper.svelte';
   import { getElementLabel } from '$lib/desktop/features/dashboard/utils/elementLabels';
+  import {
+    getEffectiveWidth,
+    SUPPORTS_HALF,
+  } from '$lib/desktop/features/dashboard/utils/elementWidths';
   import { api } from '$lib/utils/api';
   import { getLogger } from '$lib/utils/logger';
   import { t } from '$lib/i18n';
@@ -50,6 +54,7 @@
     'banner',
     'daily-summary',
     'currently-hearing',
+    'live-spectrogram',
     'detections-grid',
     'video-embed',
   ];
@@ -105,7 +110,9 @@
         id: el.id,
         type: el.type,
         enabled: el.enabled,
-        ...(el.width && el.width !== 'full' ? { width: el.width } : {}),
+        // Always send explicit width for elements that support it to ensure the
+        // server receives the intended value rather than relying on omission defaults.
+        ...(SUPPORTS_HALF.has(el.type) ? { width: getEffectiveWidth(el) } : {}),
         ...(el.banner ? { banner: el.banner } : {}),
         ...(el.video ? { video: el.video } : {}),
         ...(el.summary ? { summary: el.summary } : {}),
@@ -170,12 +177,6 @@
         addDropdownOpen = false;
       }
     }
-  }
-
-  // Get effective width for an element
-  function getEffectiveWidth(el: DashboardElement): 'full' | 'half' {
-    if (el.type === 'daily-summary') return 'full';
-    return el.width ?? 'full';
   }
 </script>
 

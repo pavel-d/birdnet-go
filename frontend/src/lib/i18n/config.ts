@@ -4,16 +4,19 @@
  */
 
 export const LOCALES = {
+  da: { name: 'Dansk' },
   en: { name: 'English' },
   de: { name: 'Deutsch' },
   es: { name: 'Espanol' },
   fi: { name: 'Suomi' },
   fr: { name: 'Francais' },
   it: { name: 'Italiano' },
+  lv: { name: 'Latviešu' },
   nl: { name: 'Nederlands' },
   pl: { name: 'Polski' },
   pt: { name: 'Portugues' },
   sk: { name: 'Slovenčina' },
+  sv: { name: 'Svenska' },
 } as const;
 
 export type Locale = keyof typeof LOCALES;

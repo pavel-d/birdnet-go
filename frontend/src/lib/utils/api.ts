@@ -335,9 +335,25 @@ export async function fetchWithCSRF<T = unknown>(
     throw new ApiError('Invalid request body', 400, new Response());
   }
 
+  // Wire caller signal AFTER all synchronous validations pass, so the
+  // listener is only attached when we're about to actually fetch.
+  let onCallerAbort: (() => void) | null = null;
+  if (options.signal) {
+    if (options.signal.aborted) {
+      controller.abort();
+    } else {
+      onCallerAbort = () => controller.abort();
+      options.signal.addEventListener('abort', onCallerAbort, { once: true });
+    }
+  }
+
+  // Strip signal from options so caller's signal doesn't overwrite the internal one
+  const { signal: _ignored, ...restOptions } = options;
+  void _ignored; // Consumed via addEventListener above; destructured only to exclude from spread
+
   const finalOptions: RequestInit = {
     ...defaultOptions,
-    ...options,
+    ...restOptions,
     body,
   };
 
@@ -381,6 +397,10 @@ export async function fetchWithCSRF<T = unknown>(
     // SECURITY: Handle network and other errors securely
     if (error instanceof Error) {
       if (error.name === 'AbortError') {
+        // Distinguish caller-initiated cancellation from internal timeout
+        if (options.signal?.aborted) {
+          throw error; // Preserve original AbortError for caller cancellation
+        }
         throw new ApiError(t('errors.api.requestTimeout'), 408, new Response(), true);
       }
       if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
@@ -390,6 +410,11 @@ export async function fetchWithCSRF<T = unknown>(
 
     // SECURITY: Generic error for unknown cases
     throw new ApiError(t('errors.api.unknownError'), 0, new Response());
+  } finally {
+    // Clean up caller abort listener to prevent accumulation on long-lived signals
+    if (options.signal && onCallerAbort) {
+      options.signal.removeEventListener('abort', onCallerAbort);
+    }
   }
 }
 

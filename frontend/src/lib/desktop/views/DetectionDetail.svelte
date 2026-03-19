@@ -29,7 +29,17 @@
   import { formatLocalDateTime } from '$lib/utils/date';
   import { buildAppUrl } from '$lib/utils/urlHelpers';
   import { loggers } from '$lib/utils/logger';
-  import { Download, Calendar, Clock, Sun, Moon, Sunrise, Sunset } from '@lucide/svelte';
+  import {
+    Download,
+    Camera,
+    Clock,
+    History,
+    StickyNote,
+    Sun,
+    Moon,
+    Sunrise,
+    Sunset,
+  } from '@lucide/svelte';
 
   // Interface definitions for API responses
   interface SpeciesRarity {
@@ -422,86 +432,128 @@
 <!-- Snippets for better organization -->
 
 {#snippet heroSection(det: Detection)}
-  <section class="detection-hero" aria-labelledby="species-heading">
-    <!-- Row 1: Thumbnail + Species + Confidence/DateTime -->
-    <div class="hero-row">
-      <!-- Species thumbnail with credit overlay -->
-      <div class="hero-thumbnail">
-        <img
-          src="/api/v2/media/species-image?name={encodeURIComponent(det.scientificName)}"
-          alt={det.commonName}
-          class="w-full h-full object-contain"
-          onerror={handleBirdImageError}
-          loading="eager"
-        />
-        {#if imageAttribution?.authorName}
-          <div class="thumbnail-credit" aria-label="Image credit: {imageAttribution.authorName}">
-            <span class="credit-text">📷 {imageAttribution.authorName}</span>
-            {#if imageAttribution.licenseName}
-              <span class="credit-separator">·</span>
-              {#if imageAttribution.licenseURL}
-                <a
-                  href={imageAttribution.licenseURL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="credit-license">{imageAttribution.licenseName}</a
-                >
-              {:else}
-                <span class="credit-license">{imageAttribution.licenseName}</span>
+  <section class="detection-hero-grid" aria-labelledby="species-heading">
+    <!-- Identity Card -->
+    <div class="hero-card hero-identity-card">
+      <h3 class="section-heading">{t('detections.detail.species')}</h3>
+      <div class="hero-identity-row">
+        <!-- Species thumbnail with credit overlay -->
+        <div class="hero-thumbnail">
+          <img
+            src="/api/v2/media/species-image?name={encodeURIComponent(det.scientificName)}"
+            alt={det.commonName}
+            class="w-full h-full object-contain"
+            onerror={handleBirdImageError}
+            loading="eager"
+          />
+          {#if imageAttribution?.authorName}
+            <div class="thumbnail-credit" aria-label="Image credit: {imageAttribution.authorName}">
+              <Camera size={10} class="credit-icon" />
+              <span class="credit-text">{imageAttribution.authorName}</span>
+              {#if imageAttribution.licenseName}
+                <span class="credit-separator">·</span>
+                {#if imageAttribution.licenseURL}
+                  <a
+                    href={imageAttribution.licenseURL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="credit-license">{imageAttribution.licenseName}</a
+                  >
+                {:else}
+                  <span class="credit-license">{imageAttribution.licenseName}</span>
+                {/if}
               {/if}
-            {/if}
-          </div>
-        {/if}
-      </div>
-
-      <!-- Species identity -->
-      <div class="hero-species">
-        <h1 id="species-heading" class="species-display-name">
-          {det.commonName}
-          <span class="sr-only">detection details</span>
-        </h1>
-        <p class="species-scientific-name" aria-label="Scientific name">
-          {det.scientificName}
-        </p>
-        <div class="mt-3" aria-label="Species classification badges">
-          <SpeciesBadges detection={det} size="sm" />
+            </div>
+          {/if}
         </div>
-      </div>
 
-      <!-- Right side: Confidence + Date/Time -->
-      <div class="hero-meta" role="region" aria-label="Detection metadata">
+        <!-- Species identity -->
+        <div class="hero-species">
+          <h1 id="species-heading" class="species-display-name">
+            {det.commonName}
+            <span class="sr-only">detection details</span>
+          </h1>
+          <p class="species-scientific-name" aria-label="Scientific name">
+            {det.scientificName}
+          </p>
+          <div class="mt-3" aria-label="Species classification badges">
+            <SpeciesBadges detection={det} size="sm" />
+          </div>
+        </div>
+
         <!-- Confidence -->
-        <div class="hero-meta-block" aria-label="Detection confidence {det.confidence}%">
+        <div class="hero-confidence" aria-label="Detection confidence {det.confidence}%">
           <ConfidenceCircle confidence={det.confidence} size="xl" />
         </div>
+      </div>
+    </div>
 
-        <!-- Vertical divider -->
-        <div class="hero-meta-divider" aria-hidden="true"></div>
+    <!-- Taxonomy Card -->
+    {#if isLoadingTaxonomy || taxonomyInfo?.taxonomy}
+      <div class="hero-card hero-taxonomy-card" aria-labelledby="hero-taxonomy-heading">
+        <h3 id="hero-taxonomy-heading" class="section-heading">
+          {t('species.taxonomy.hierarchy')}
+        </h3>
+        {#if isLoadingTaxonomy}
+          <div class="animate-pulse space-y-2.5">
+            {#each Array(5) as _, i (i)}
+              <div class="flex items-center gap-2" style:padding-left="{i * 1.25}rem">
+                <div class="h-3 rounded bg-[var(--color-base-300)]/60 w-12"></div>
+                <div class="h-3 rounded bg-[var(--color-base-300)]/60 w-20"></div>
+              </div>
+            {/each}
+          </div>
+        {:else if taxonomyInfo?.taxonomy}
+          <div class="taxonomy-tree">
+            {#each [{ key: 'class', value: taxonomyInfo.taxonomy.class, depth: 0 }, { key: 'order', value: taxonomyInfo.taxonomy.order, depth: 1 }, { key: 'family', value: taxonomyInfo.taxonomy.family, depth: 2 }, { key: 'genus', value: taxonomyInfo.taxonomy.genus, depth: 3 }, { key: 'species', value: taxonomyInfo.taxonomy.species, depth: 4 }] as rank, i (rank.key)}
+              <div class="taxonomy-node" style:--depth={rank.depth}>
+                {#if i > 0}
+                  <div class="taxonomy-connector" aria-hidden="true">
+                    <div class="connector-vert"></div>
+                    <div class="connector-horiz"></div>
+                  </div>
+                {/if}
+                <span class="taxonomy-rank-label">
+                  {t(`species.taxonomy.labels.${rank.key}`)}
+                </span>
+                <span class="taxonomy-rank-value" class:italic={rank.key === 'species'}>
+                  {rank.value}
+                </span>
+              </div>
+            {/each}
+          </div>
 
-        <!-- Date & Time -->
-        <div class="hero-meta-block">
-          <span class="stat-value flex items-center gap-1.5">
-            <Calendar class="w-3.5 h-3.5 opacity-50" />
-            {det.date}
-          </span>
-          <span class="stat-value flex items-center gap-1.5 mt-0.5">
-            <Clock class="w-3.5 h-3.5 opacity-50" />
-            {det.time}
-          </span>
+          {#if subspeciesList.length > 0}
+            <div class="taxonomy-subspecies">
+              <h4 class="taxonomy-subspecies-heading">{t('species.taxonomy.subspecies')}</h4>
+              <div class="taxonomy-subspecies-list">
+                {#each subspeciesList as subspecies, index (`${subspecies.scientific_name}_${index}`)}
+                  <div class="taxonomy-subspecies-item">
+                    <span class="italic">{subspecies.scientific_name}</span>
+                    {#if subspecies.common_name}
+                      <span class="taxonomy-subspecies-common">{subspecies.common_name}</span>
+                    {/if}
+                  </div>
+                {/each}
+              </div>
+            </div>
+          {/if}
+        {/if}
+      </div>
+    {/if}
+
+    <!-- Metadata Card -->
+    <div class="hero-card hero-metadata-card" role="region" aria-label="Detection metadata">
+      <h3 class="section-heading">{t('detections.detail.observation')}</h3>
+      <!-- Date & Time -->
+      <div class="meta-section">
+        <div class="meta-date">{det.date}</div>
+        <div class="meta-time-row">
+          <Clock class="w-3.5 h-3.5" />
+          <span>{det.time}</span>
           {#if det.timeOfDay}
             {@const tod = det.timeOfDay.toLowerCase()}
-            {@const todColors = {
-              day: { bg: 'oklch(0.92 0.08 90)', fg: 'oklch(0.45 0.12 75)' },
-              night: { bg: 'oklch(0.3 0.06 270)', fg: 'oklch(0.8 0.08 270)' },
-              sunrise: { bg: 'oklch(0.92 0.1 60)', fg: 'oklch(0.48 0.14 45)' },
-              sunset: { bg: 'oklch(0.9 0.1 30)', fg: 'oklch(0.45 0.14 25)' },
-            }}
-            {@const colors = todColors[tod as keyof typeof todColors] ?? todColors.day}
-            <span
-              class="time-of-day-badge"
-              style:background-color={colors.bg}
-              style:color={colors.fg}
-            >
+            <span class="time-of-day-badge tod-{tod}">
               {#if tod === 'day'}
                 <Sun size={12} />
               {:else if tod === 'night'}
@@ -515,40 +567,38 @@
             </span>
           {/if}
         </div>
+      </div>
 
-        <!-- Weather column -->
-        {#if det.weather}
-          <div class="hero-meta-divider" aria-hidden="true"></div>
-          <div
-            class="hero-meta-block hero-weather"
-            aria-label="Weather conditions at time of detection"
-          >
-            <WeatherDetails
-              weatherIcon={det.weather.weatherIcon}
-              weatherDescription={det.weather.description}
-              timeOfDay={det.timeOfDay?.toLowerCase() === 'night' ? 'night' : 'day'}
-              temperature={det.weather.temperature}
-              windSpeed={det.weather.windSpeed}
-              windGust={det.weather.windGust}
-              units={det.weather.units}
-              size="md"
-            />
-          </div>
-        {/if}
+      <!-- Weather -->
+      {#if det.weather}
+        <div class="meta-section hero-weather" aria-label="Weather conditions at time of detection">
+          <WeatherDetails
+            weatherIcon={det.weather.weatherIcon}
+            weatherDescription={det.weather.description}
+            timeOfDay={det.timeOfDay?.toLowerCase() === 'night' ? 'night' : 'day'}
+            temperature={det.weather.temperature}
+            windSpeed={det.weather.windSpeed}
+            windGust={det.weather.windGust}
+            units={det.weather.units}
+            size="md"
+          />
+        </div>
+      {/if}
 
-        <!-- Download -->
-        {#if det.clipName}
-          <div class="hero-meta-divider" aria-hidden="true"></div>
+      <!-- Download -->
+      {#if det.clipName}
+        <div class="meta-section">
           <a
             href={buildAppUrl(`/api/v2/media/audio/${det.clipName}`)}
             download
-            class="hero-download-btn"
+            class="meta-download"
             aria-label="Download audio clip for {det.commonName} detection"
           >
             <Download class="w-4 h-4" />
+            <span>{t('media.audio.download')}</span>
           </a>
-        {/if}
-      </div>
+        </div>
+      {/if}
     </div>
   </section>
 {/snippet}
@@ -614,77 +664,14 @@
         </div>
       </section>
     {/if}
-
-    <!-- Taxonomy -->
-    {#if isLoadingTaxonomy}
-      <section aria-labelledby="taxonomy-heading" class="md:col-span-2">
-        <h3 id="taxonomy-heading" class="section-heading">
-          {t('species.taxonomy.hierarchy')}
-        </h3>
-        <div class="content-panel">
-          <div class="animate-pulse space-y-3">
-            {#each Array(7) as _, i (i)}
-              <div class="flex items-center gap-2">
-                <div class="h-3 rounded bg-[var(--color-base-300)]/60 w-14"></div>
-                <div class="h-3 rounded bg-[var(--color-base-300)]/60 w-24"></div>
-              </div>
-            {/each}
-          </div>
-        </div>
-      </section>
-    {:else if taxonomyInfo?.taxonomy}
-      <section aria-labelledby="taxonomy-heading" class="md:col-span-2">
-        <h3 id="taxonomy-heading" class="section-heading">
-          {t('species.taxonomy.hierarchy')}
-        </h3>
-        <div class="content-panel taxonomy-panel">
-          <div class="taxonomy-tree">
-            {#each [{ key: 'kingdom', value: taxonomyInfo.taxonomy.kingdom, depth: 0 }, { key: 'phylum', value: taxonomyInfo.taxonomy.phylum, depth: 1 }, { key: 'class', value: taxonomyInfo.taxonomy.class, depth: 2 }, { key: 'order', value: taxonomyInfo.taxonomy.order, depth: 3 }, { key: 'family', value: taxonomyInfo.taxonomy.family, depth: 4, extra: taxonomyInfo.taxonomy.family_common }, { key: 'genus', value: taxonomyInfo.taxonomy.genus, depth: 5 }, { key: 'species', value: taxonomyInfo.taxonomy.species, depth: 6 }] as rank, i (rank.key)}
-              <div class="taxonomy-node" style:--depth={rank.depth}>
-                {#if i > 0}
-                  <div class="taxonomy-connector" aria-hidden="true">
-                    <div class="connector-vert"></div>
-                    <div class="connector-horiz"></div>
-                  </div>
-                {/if}
-                <span class="taxonomy-rank-label">
-                  {t(`species.taxonomy.labels.${rank.key}`)}
-                </span>
-                <span class="taxonomy-rank-value" class:italic={rank.key === 'species'}>
-                  {rank.value}
-                  {#if rank.extra}
-                    <span class="taxonomy-family-common">({rank.extra})</span>
-                  {/if}
-                </span>
-              </div>
-            {/each}
-          </div>
-
-          {#if subspeciesList.length > 0}
-            <div class="taxonomy-subspecies">
-              <h4 class="taxonomy-subspecies-heading">{t('species.taxonomy.subspecies')}</h4>
-              <div class="taxonomy-subspecies-list">
-                {#each subspeciesList as subspecies, index (`${subspecies.scientific_name}_${index}`)}
-                  <div class="taxonomy-subspecies-item">
-                    <span class="italic">{subspecies.scientific_name}</span>
-                    {#if subspecies.common_name}
-                      <span class="taxonomy-subspecies-common">{subspecies.common_name}</span>
-                    {/if}
-                  </div>
-                {/each}
-              </div>
-            </div>
-          {/if}
-        </div>
-      </section>
-    {/if}
   </div>
 {/snippet}
 
 {#snippet historyTab()}
-  <section aria-labelledby="history-heading">
-    <h3 id="history-heading" class="section-heading">{t('detections.history.title')}</h3>
-    <p class="text-sm text-[var(--color-base-content)]/50 italic" role="status">
+  <section class="empty-state-section" aria-labelledby="history-heading">
+    <History class="empty-state-icon" />
+    <h3 id="history-heading" class="empty-state-heading">{t('detections.history.title')}</h3>
+    <p class="empty-state-text" role="status">
       {t('detections.history.comingSoon')}
     </p>
   </section>
@@ -708,9 +695,12 @@
         {/each}
       </div>
     {:else}
-      <p class="text-sm text-[var(--color-base-content)]/50 italic" role="status">
-        {t('detections.notes.noComments')}
-      </p>
+      <div class="empty-state-section">
+        <StickyNote class="empty-state-icon" />
+        <p class="empty-state-text" role="status">
+          {t('detections.notes.noComments')}
+        </p>
+      </div>
     {/if}
   </section>
 {/snippet}
@@ -749,18 +739,15 @@
     <!-- Media Section -->
     <section class="surface-card" aria-labelledby="media-heading">
       <div class="p-5 md:p-6">
-        <h2
-          id="media-heading"
-          class="section-heading"
-          class:mb-1={clipExtractionEnabled}
-          class:mb-4={!clipExtractionEnabled}
-        >
+        <h2 id="media-heading" class="section-heading !mb-0">
           {t('detections.media.title')}
         </h2>
         {#if clipExtractionEnabled}
-          <p class="text-sm text-[var(--color-base-content)]/60 mb-4">
+          <p class="text-sm text-[var(--color-base-content)]/60 mt-0.5 mb-4">
             {t('detections.media.clipHint')}
           </p>
+        {:else}
+          <div class="mb-3"></div>
         {/if}
         <div role="region" aria-label="Audio recording and spectrogram for {detection.commonName}">
           <div class="detail-media-stack">
@@ -892,9 +879,7 @@
   .detection-detail {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-    max-width: 960px;
-    margin: 0 auto;
+    gap: 1.5rem;
     width: 100%;
   }
 
@@ -905,8 +890,57 @@
     border: 1px solid var(--border-100);
   }
 
-  /* ----- Hero Section ----- */
-  .detection-hero {
+  /* ----- Hero Section: Two-card grid ----- */
+  .detection-hero-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  /* Two columns: identity + metadata, taxonomy spans below */
+  @media (min-width: 1024px) {
+    .detection-hero-grid {
+      grid-template-columns: 1fr minmax(220px, 280px);
+    }
+
+    .hero-identity-card {
+      grid-column: 1;
+      grid-row: 1;
+    }
+
+    .hero-metadata-card {
+      grid-column: 2;
+      grid-row: 1;
+    }
+
+    .hero-taxonomy-card {
+      grid-column: 1 / -1;
+    }
+  }
+
+  /* Three columns: all cards in one row */
+  @media (min-width: 1440px) {
+    .detection-hero-grid {
+      grid-template-columns: 1fr auto minmax(220px, 280px);
+    }
+
+    .hero-identity-card {
+      grid-column: 1;
+      grid-row: 1;
+    }
+
+    .hero-taxonomy-card {
+      grid-column: 2;
+      grid-row: 1;
+    }
+
+    .hero-metadata-card {
+      grid-column: 3;
+      grid-row: 1;
+    }
+  }
+
+  .hero-card {
     background-color: var(--color-base-100);
     border-radius: var(--radius-box);
     border: 1px solid var(--border-100);
@@ -914,24 +948,99 @@
   }
 
   @media (min-width: 768px) {
-    .detection-hero {
+    .hero-card {
       padding: 2rem;
     }
   }
 
-  /* ----- Hero Row: Thumbnail + Species + Meta ----- */
-  .hero-row {
+  /* Identity card row: thumbnail + species + confidence */
+  .hero-identity-row {
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
   }
 
   @media (min-width: 768px) {
-    .hero-row {
+    .hero-identity-row {
       flex-direction: row;
       align-items: flex-start;
       gap: 1.5rem;
     }
+  }
+
+  .hero-confidence {
+    flex-shrink: 0;
+  }
+
+  @media (min-width: 768px) {
+    .hero-confidence {
+      margin-left: auto;
+      padding-left: 1.5rem;
+      border-left: 1px solid var(--border-100);
+    }
+  }
+
+  /* Metadata card — vertical stacked sections */
+  .hero-metadata-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .meta-section {
+    padding: 0.875rem 0;
+  }
+
+  .meta-section:first-child {
+    padding-top: 0;
+  }
+
+  .meta-section:last-child {
+    padding-bottom: 0;
+  }
+
+  .meta-section + .meta-section {
+    border-top: 1px solid var(--border-100);
+  }
+
+  /* Date — prominent visual anchor for the time section */
+  .meta-date {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-base-content);
+    letter-spacing: -0.01em;
+  }
+
+  /* Time + time-of-day badge — inline, secondary */
+  .meta-time-row {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin-top: 0.25rem;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--color-base-content);
+    opacity: 0.7;
+  }
+
+  .meta-time-row .time-of-day-badge {
+    margin-top: 0;
+    margin-left: 0.125rem;
+  }
+
+  .meta-download {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--color-base-content);
+    opacity: 0.6;
+    transition: opacity 0.15s ease;
+  }
+
+  .meta-download:hover {
+    opacity: 1;
   }
 
   /* Species thumbnail — 4:3 to match avicommons 320×240 source images */
@@ -939,7 +1048,7 @@
     position: relative;
     width: 100%;
     aspect-ratio: 4 / 3;
-    max-height: 140px;
+    max-height: 160px;
     border-radius: 0.75rem;
     overflow: hidden;
     background: linear-gradient(135deg, var(--color-base-200), var(--color-base-300));
@@ -949,8 +1058,8 @@
 
   @media (min-width: 768px) {
     .hero-thumbnail {
-      width: 180px;
-      min-width: 180px;
+      width: 220px;
+      min-width: 220px;
       max-height: none;
     }
   }
@@ -966,6 +1075,11 @@
     padding: 0.2rem 0.4rem;
     background: oklch(10% 0 0deg / 0.55);
     border-top-left-radius: 0.375rem;
+  }
+
+  .credit-icon {
+    color: oklch(85% 0 0deg);
+    flex-shrink: 0;
   }
 
   .credit-text {
@@ -1006,7 +1120,7 @@
   /* Species display name - refined Inter typography */
   .species-display-name {
     font-family: 'Inter Variable', Inter, ui-sans-serif, sans-serif;
-    font-size: 1.375rem;
+    font-size: 1.5rem;
     font-weight: 650;
     line-height: 1.2;
     letter-spacing: -0.025em;
@@ -1016,7 +1130,7 @@
 
   @media (min-width: 768px) {
     .species-display-name {
-      font-size: 1.5rem;
+      font-size: 1.875rem;
     }
   }
 
@@ -1030,49 +1144,7 @@
     letter-spacing: 0.01em;
   }
 
-  /* Right-side metadata (confidence + date/time) */
-  .hero-meta {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    flex-shrink: 0;
-  }
-
-  @media (max-width: 767px) {
-    .hero-meta {
-      border-top: 1px solid var(--border-100);
-      padding-top: 1rem;
-    }
-  }
-
-  @media (min-width: 768px) {
-    .hero-meta {
-      border-left: 1px solid var(--border-100);
-      padding-left: 1.5rem;
-      margin-left: auto;
-    }
-  }
-
-  .hero-meta-block {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .hero-meta-divider {
-    width: 1px;
-    align-self: stretch;
-    background-color: var(--border-100);
-  }
-
-  .stat-value {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--color-base-content);
-    line-height: 1.4;
-  }
-
-  /* Time of day badge — colors applied via inline styles */
+  /* Time of day badge — theme-safe via alpha transparency */
   .time-of-day-badge {
     display: inline-flex;
     align-items: center;
@@ -1085,9 +1157,26 @@
     border-radius: 9999px;
     margin-top: 0.5rem;
     line-height: 1;
+    color: var(--color-base-content);
   }
 
-  /* Weather column in hero */
+  .tod-day {
+    background: oklch(80% 0.1 85deg / 0.4);
+  }
+
+  .tod-night {
+    background: oklch(50% 0.08 270deg / 0.25);
+  }
+
+  .tod-sunrise {
+    background: oklch(80% 0.12 55deg / 0.4);
+  }
+
+  .tod-sunset {
+    background: oklch(78% 0.12 30deg / 0.4);
+  }
+
+  /* Weather in metadata card — consistent typographic scale */
   .hero-weather :global(.wd-container) {
     flex-direction: column;
     align-items: flex-start;
@@ -1101,25 +1190,12 @@
     font-size: 0.8125rem;
   }
 
-  /* Download icon button in hero */
-  .hero-download-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.25rem;
-    height: 2.25rem;
-    border-radius: var(--radius-field);
-    color: var(--color-base-content);
-    opacity: 0.55;
-    transition:
-      opacity 0.15s ease,
-      background-color 0.15s ease;
-    flex-shrink: 0;
+  .hero-weather :global(.wd-weather-icon) {
+    font-size: 1.125rem;
   }
 
-  .hero-download-btn:hover {
-    opacity: 1;
-    background-color: var(--color-base-200);
+  .hero-weather :global(.wd-wind-row) {
+    opacity: 0.55;
   }
 
   /* ----- Section Heading ----- */
@@ -1137,6 +1213,7 @@
   .content-panel {
     background-color: var(--color-base-200);
     border-radius: var(--radius-field);
+    border: 1px solid var(--border-100);
     padding: 1rem;
   }
 
@@ -1200,9 +1277,6 @@
   }
 
   /* ----- Taxonomy tree with connector lines ----- */
-  .taxonomy-panel {
-    padding: 1.25rem 1.5rem;
-  }
 
   .taxonomy-tree {
     display: flex;
@@ -1262,12 +1336,6 @@
     font-size: 0.875rem;
     font-weight: 500;
     color: var(--color-base-content);
-  }
-
-  .taxonomy-family-common {
-    color: var(--color-base-content);
-    opacity: 0.45;
-    font-style: normal;
   }
 
   /* Subspecies section */
@@ -1362,7 +1430,6 @@
   /* ----- Audio Container ----- */
   .detail-audio-container {
     width: 100%;
-    min-width: 0;
   }
 
   .detail-audio-container :global(.group) {
@@ -1376,5 +1443,38 @@
     width: 100%;
     height: auto;
     display: block;
+  }
+
+  /* ----- Empty States ----- */
+  .empty-state-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1.5rem;
+    text-align: center;
+  }
+
+  .empty-state-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    color: var(--color-base-content);
+    opacity: 0.2;
+    margin-bottom: 1rem;
+  }
+
+  .empty-state-heading {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--color-base-content);
+    opacity: 0.55;
+    margin-bottom: 0.5rem;
+  }
+
+  .empty-state-text {
+    font-size: 0.875rem;
+    color: var(--color-base-content);
+    opacity: 0.4;
+    font-style: italic;
   }
 </style>

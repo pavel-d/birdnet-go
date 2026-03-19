@@ -395,6 +395,9 @@ export interface SecuritySettings {
     enabled: boolean;
     subnet: string;
   };
+  publicAccess?: {
+    liveAudio: boolean;
+  };
 }
 
 // Legacy OAuth settings interface (deprecated)
@@ -519,6 +522,7 @@ export interface Dashboard {
   customColors?: { primary: string; accent: string }; // Custom scheme hex colors
   logoStyle?: string; // Logo display style: "gradient" or "solid"
   layout?: DashboardLayout; // Configurable dashboard element layout
+  defaultAudioGain?: number; // Default playback gain in dB (0-24)
 }
 
 // Dashboard layout configuration
@@ -532,6 +536,7 @@ export type DashboardElementType =
   | 'daily-summary'
   | 'currently-hearing'
   | 'detections-grid'
+  | 'live-spectrogram'
   | 'video-embed';
 
 // A single configurable element on the dashboard
@@ -949,9 +954,11 @@ function createEmptySettings(): SettingsFormData {
               summary: { summaryLimit: 30 },
             },
             { id: 'currently-hearing-0', type: 'currently-hearing', enabled: true },
+            { id: 'live-spectrogram-0', type: 'live-spectrogram', enabled: true },
             { id: 'detections-grid-0', type: 'detections-grid', enabled: true },
           ],
         },
+        defaultAudioGain: 0,
       },
     },
     webServer: {},

@@ -870,10 +870,16 @@ func TestGetAppConfig_NoExtraFields(t *testing.T) {
 
 	// Only these top-level keys should exist
 	expectedKeys := map[string]bool{
-		"csrfToken": true,
-		"security":  true,
-		"version":   true,
-		"basePath":  true,
+		"csrfToken":       true,
+		"security":        true,
+		"version":         true,
+		"basePath":        true,
+		"colorScheme":     true,
+		"customColors":    true,
+		"logoStyle":       true,
+		"liveSpectrogram": true,
+		"freshInstall":    true,
+		"newVersion":      true,
 	}
 
 	for key := range rawResponse {
@@ -889,6 +895,7 @@ func TestGetAppConfig_NoExtraFields(t *testing.T) {
 		"enabled":       true,
 		"accessAllowed": true,
 		"authConfig":    true,
+		"publicAccess":  true,
 	}
 
 	for key := range securityObj {
@@ -1299,4 +1306,84 @@ func FuzzGetAppConfig_SecurityConfig(f *testing.F) {
 
 		verifyFuzzSecurityResponse(t, &response, input, rec.Body.String())
 	})
+}
+
+// TestGetAppConfig_PublicAccessFlags tests that publicAccess flags are included in the response.
+func TestGetAppConfig_PublicAccessFlags(t *testing.T) {
+	e, controller := setupAppConfigTest(t, nil)
+
+	tests := []struct {
+		name     string
+		enabled  bool
+		expected bool
+	}{
+		{"LiveAudio disabled by default", false, false},
+		{"LiveAudio enabled", true, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			controller.Settings.Security.PublicAccess.LiveAudio = tt.enabled
+
+			req := httptest.NewRequest(http.MethodGet, "/api/v2/app/config", http.NoBody)
+			rec := httptest.NewRecorder()
+			c := e.NewContext(req, rec)
+			c.SetPath("/api/v2/app/config")
+
+			err := controller.GetAppConfig(c)
+			require.NoError(t, err)
+			require.Equal(t, http.StatusOK, rec.Code)
+
+			var response AppConfigResponse
+			require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &response))
+
+			assert.Equal(t, tt.expected, response.Security.PublicAccess.LiveAudio)
+		})
+	}
+}
+
+// TestGetAppConfig_LiveSpectrogramField verifies the liveSpectrogram field
+// in the app config response reflects the dashboard setting.
+func TestGetAppConfig_LiveSpectrogramField(t *testing.T) {
+	tests := []struct {
+		name     string
+		enabled  bool
+		expected bool
+	}{
+		{
+			name:     "default false",
+			enabled:  false,
+			expected: false,
+		},
+		{
+			name:     "enabled true",
+			enabled:  true,
+			expected: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			e, controller := setupAppConfigTest(t, nil)
+
+			// Set the LiveSpectrogram value for this test case
+			controller.Settings.Realtime.Dashboard.LiveSpectrogram = tt.enabled
+
+			req := httptest.NewRequest(http.MethodGet, "/api/v2/app/config", http.NoBody)
+			rec := httptest.NewRecorder()
+			c := e.NewContext(req, rec)
+			c.SetPath("/api/v2/app/config")
+
+			err := controller.GetAppConfig(c)
+			require.NoError(t, err)
+			require.Equal(t, http.StatusOK, rec.Code)
+
+			var response AppConfigResponse
+			require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &response))
+
+			assert.Equal(t, tt.expected, response.LiveSpectrogram)
+		})
+	}
 }

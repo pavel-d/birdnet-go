@@ -17,6 +17,7 @@ BirdNET-Go: Go implementation of BirdNET for real-time bird sound identification
 - Working on frontend? Read `frontend/CLAUDE.md` first
 - Working on API v2? Read `internal/api/v2/CLAUDE.md` first
 - Writing tests? Read `TESTING.md` first - all tests MUST use testify
+- Working with Sentry issues or support dumps? Load the `sentry` skill first
 
 ## Universal Rules
 
@@ -26,6 +27,7 @@ BirdNET-Go: Go implementation of BirdNET for real-time bird sound identification
 - **Always lint before commit**: `golangci-lint run -v` (Go), `npm run check:all` (Frontend)
 - **Branch from updated main**: `git pull origin main && git checkout -b feature-name`
 - **No magic numbers/strings** - Use named constants with descriptive names
+- **Settings must support hot-reload** - All settings changed via the UI must take effect immediately without requiring a server restart. Use per-request checks (e.g., dynamic middleware) instead of startup-time branching.
 
 ### Project Structure
 
