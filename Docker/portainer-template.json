@@ -41,43 +41,37 @@
           "name": "BIRDNET_LOCALE",
           "label": "Locale",
           "description": "Language for species names (e.g. en-us, fi, de, sv)",
-          "default": "en-us",
-          "preset": true
+          "default": "en-us"
         },
         {
           "name": "BIRDNET_LATITUDE",
           "label": "Latitude",
           "description": "Your location latitude (-90.0 to 90.0) for species range filtering",
-          "default": "",
-          "preset": true
+          "default": ""
         },
         {
           "name": "BIRDNET_LONGITUDE",
           "label": "Longitude",
           "description": "Your location longitude (-180.0 to 180.0) for species range filtering",
-          "default": "",
-          "preset": true
+          "default": ""
         },
         {
           "name": "BIRDNET_SENSITIVITY",
           "label": "Sensitivity",
           "description": "Detection sensitivity (0.1 to 1.5, higher = more sensitive)",
-          "default": "1.0",
-          "preset": true
+          "default": "1.0"
         },
         {
           "name": "BIRDNET_THRESHOLD",
           "label": "Confidence Threshold",
           "description": "Minimum confidence for detections (0.0 to 1.0)",
-          "default": "0.8",
-          "preset": true
+          "default": "0.8"
         },
         {
           "name": "BIRDNET_OVERLAP",
           "label": "Audio Overlap",
           "description": "Audio chunk overlap in seconds (0.0 to 2.9)",
-          "default": "1.5",
-          "preset": true
+          "default": "1.5"
         }
       ],
       "note": "<p>After deployment, access the web UI at <code>http://your-host:8080</code>.</p><p>For audio capture from a local microphone, ensure <code>/dev/snd</code> is accessible. For RTSP streams, configure the stream URL in the web UI after first launch.</p><p>See <a href=\"https://github.com/tphakala/birdnet-go\" target=\"_blank\">GitHub</a> for full documentation.</p>"
@@ -122,43 +116,37 @@
           "name": "BIRDNET_LOCALE",
           "label": "Locale",
           "description": "Language for species names (e.g. en-us, fi, de, sv)",
-          "default": "en-us",
-          "preset": true
+          "default": "en-us"
         },
         {
           "name": "BIRDNET_LATITUDE",
           "label": "Latitude",
           "description": "Your location latitude (-90.0 to 90.0) for species range filtering",
-          "default": "",
-          "preset": true
+          "default": ""
         },
         {
           "name": "BIRDNET_LONGITUDE",
           "label": "Longitude",
           "description": "Your location longitude (-180.0 to 180.0) for species range filtering",
-          "default": "",
-          "preset": true
+          "default": ""
         },
         {
           "name": "BIRDNET_SENSITIVITY",
           "label": "Sensitivity",
           "description": "Detection sensitivity (0.1 to 1.5, higher = more sensitive)",
-          "default": "1.0",
-          "preset": true
+          "default": "1.0"
         },
         {
           "name": "BIRDNET_THRESHOLD",
           "label": "Confidence Threshold",
           "description": "Minimum confidence for detections (0.0 to 1.0)",
-          "default": "0.8",
-          "preset": true
+          "default": "0.8"
         },
         {
           "name": "BIRDNET_OVERLAP",
           "label": "Audio Overlap",
           "description": "Audio chunk overlap in seconds (0.0 to 2.9)",
-          "default": "1.5",
-          "preset": true
+          "default": "1.5"
         }
       ],
       "note": "<p>This template enables automatic HTTPS via Let's Encrypt. Your domain must point to this server and ports 80/443 must be accessible from the internet.</p><p><strong>Required:</strong> Set your domain name in the <code>BIRDNET_HOST</code> variable.</p><p>See <a href=\"https://github.com/tphakala/birdnet-go\" target=\"_blank\">GitHub</a> for full documentation.</p>"
