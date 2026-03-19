@@ -361,15 +361,12 @@
   .audio-toolbar {
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
     gap: 0.5rem;
     padding: 0.375rem 0.5rem;
     background: var(--color-base-200);
     border: 1px solid var(--color-base-300);
     border-radius: var(--radius-field);
     font-size: 0.75rem;
-    width: 100%;
-    min-width: 0;
   }
 
   .toolbar-group {
@@ -378,13 +375,11 @@
     gap: 0.25rem;
     flex-shrink: 0;
     white-space: nowrap;
-    min-width: 0;
   }
 
   .playback-controls {
-    flex: 1 1 100%;
+    flex: 0 0 auto;
     gap: 0.375rem;
-    min-width: 0;
   }
 
   .play-btn {
@@ -432,22 +427,11 @@
   .processing-controls {
     flex: 1 1 auto;
     justify-content: center;
-    min-width: 0;
   }
 
   .export-controls {
     flex: 0 0 auto;
     margin-left: auto;
-  }
-
-  @media (min-width: 1280px) {
-    .audio-toolbar {
-      flex-wrap: nowrap;
-    }
-
-    .playback-controls {
-      flex: 0 0 auto;
-    }
   }
 
   .toolbar-btn {
